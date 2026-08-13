@@ -47,4 +47,4 @@ Required per University of Scranton AI Policy, HamSCI Generative AI Use Agreemen
   3. **`ok_to_list_public`** is `unknown` for most stations because the source column was blank. No station should be published on that basis.
   4. **The four unlisted candidate transmitters** (DC7TO, ZD7GWM, N9VP, G0PKT) are the output of a detection heuristic, not confirmed WSPRSondes.
   5. Personal data (host names, street addresses, emails, phone numbers) was deliberately excluded from all tracked files; `reference/` was gitignored. Confirm nothing leaked before the first push.
-- **Git Hash**: _(pending)_
+- **Git Hash**: a9d7a50 (polar-psws vendored copy: 704bef1)

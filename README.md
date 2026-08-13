@@ -1,41 +1,90 @@
-# AI Project Template
+# wsprsonde.hamsci.org
 
-A starter scaffold for AI-assisted writing or coding projects in Dr. Nathaniel A. Frissell's (W2NAF) academic and HamSCI portfolio. The template enforces compliance with University of Scranton, HamSCI, NASA, and NSF policies on generative AI use, and provides a `/commit` workflow that logs every substantive AI session before committing.
+Registry, frequency coordination and on-air verification for the **HamSCI WSPRSonde network** —
+the transmit side of the HamSCI Personal Space Weather Station programme.
 
-The same scaffold supports:
-- **Writing projects** (papers, proposals, annual reports, theses) — typically with an `overleaf/` submodule
-- **Coding projects** (research software, dashboards, analysis pipelines) — flat or with one or more code submodules
-- **Mixed projects** — both, in any combination
+A WSPRSonde is an 8-band, GPS-disciplined, ~1 W-per-band WSPR/FST4W beacon built by
+[Turn Island Systems](https://turnislandsystems.com/) and deployed by
+[HamSCI](https://hamsci.org/wsprsonde-psws-transmitter) so that the PSWS receiver network observes
+a *controlled* transmitter — known position, known power, GPS-locked frequency, continuous
+operation — instead of whoever happened to be on the air.
 
-## Use as a GitHub Template
+This repository holds two things:
+
+1. **A reconciled station registry and the code that checks it against reality.** Four partial
+   records of the network existed as of August 2026 — a spreadsheet, a database table, an email
+   thread and a shipping list. `data/wsprsonde_stations.csv` merges them;
+   `src/wsprsonde/` verifies the result against live WsprDaemon observations and writes
+   `products/wsprsonde_locations.csv`, which `polar-psws` overlays on its station maps.
+2. **[Requirements for a WSPRSonde management system](docs/requirements_wsprsonde_management_system.md)**
+   — a draft for collaborator review covering registry, frequency coordination, monitoring, and
+   control-operator positive control.
+
+## Quick start
+
+No dependencies beyond a stock Python 3.10+.
 
 ```bash
-gh repo create my-new-project --template w2naf-academia/ai_project_template --private --clone
+PYTHONPATH=src python3 -m wsprsonde.build_locations
+python3 -m pytest
 ```
 
-or click **Use this template** on the GitHub repository page.
+`build_locations` queries the WsprDaemon ClickHouse endpoint at `wd10.wsprdaemon.org` and writes
+three files to `products/`:
 
-## After Instantiation
+| File | Contents |
+| --- | --- |
+| `wsprsonde_locations.csv` | One row per unit: position, on-air status, assigned vs. measured frequency offset |
+| `wsprsonde_locations_manifest.json` | Provenance — when it ran, what windows, what thresholds, resulting counts |
+| `wsprsonde_candidates.csv` | Transmitters that look like WSPRSondes but are not in the registry |
 
-1. **Replace placeholders.** Search the repo for `{{` and replace every `{{PLACEHOLDER}}` in `CLAUDE.md`, `.claude/rules/ai-governance.md`, and `ai/ai_usage_log.md`. Common placeholders:
-   - `{{PROJECT_NAME}}`, `{{PROJECT_TITLE}}`, `{{PROJECT_GOAL}}`, `{{PROJECT_PERIOD}}`
-   - `{{PI_NAME_AND_AFFILIATION}}`, `{{COLLABORATORS}}`, `{{FUNDER}}`, `{{FUNDING_AMOUNT_OPTIONAL}}`
-   - `{{REPO_NAME}}`
-2. **Prune optional rule files.** Delete the rule files that don't apply:
-   - `rm .claude/rules/latex-writing.md` if no LaTeX
-   - `rm .claude/rules/python-code.md` if no Python code
-3. **Add project-specific top-level folders** (e.g., `manuscript/`, `src/`, `posters/`, `proposal/`, `media/`).
-4. **Add submodules if needed.**
-   - Overleaf manuscript: `git submodule add https://git.overleaf.com/<id> overleaf`
-   - External code repo: `git submodule add git@github.com:org/repo.git <path>`
-5. **Customize `.claude/rules/ai-governance.md`** — fill in the `{{FUNDER}}`-specific expectations section, or delete it if the project is unfunded.
-6. **Commit and push** the instantiated project to its own GitHub repo.
+## What the product tells you
 
-## What This Template Provides
+Two status columns, deliberately kept apart:
 
-- **`CLAUDE.md`** — top-level project instructions consumed automatically by Claude Code, with placeholders for project specifics.
-- **`.claude/rules/ai-governance.md`** — standing AI-use policies (Scranton, HamSCI, NASA, NSF) plus a funder-specific section.
-- **`.claude/commands/commit.md`** — the `/commit` slash command that logs the AI session, commits dirty submodules first, then commits the main repo. Auto-detects submodules.
-- **`ai/ai_usage_log.md`** — append-only log of every substantive AI-assisted session.
-- **`.gitignore`** — generic LaTeX + Python build artifacts.
-- **Optional rule files** for LaTeX writing and Python code, with "delete if unused" headers.
+- **`record_status`** — what the project believes: `deployed`, `retired`, `in_transit`,
+  `pending_shipment`, `unknown`.
+- **`on_air_status`** — what the radio is doing: `active`, `intermittent`, `silent`.
+
+Rows where these disagree are the useful ones. A `deployed` station that is `silent` is a work
+item, not a datum.
+
+Likewise `offset_assigned_hz` (what the frequency coordinator allocated) against
+`offset_observed_hz` (what receivers measure), with `offset_check` reporting `ok`, `MISMATCH`, or
+`incoherent` when the bands disagree too much for a single offset to exist.
+
+## Identifying a WSPRSonde in the spot record
+
+A constant frequency offset does **not** identify one — an ordinary WSJT-X station band-hopping
+with a fixed TX audio tone looks identical. What does work is **simultaneity**: a WSPRSonde keys
+every band in the same 2-minute slot, which no band-hopping station can imitate. See
+`wsprsonde.wsprdaemon.simultaneity`. The method needs someone to have *heard* several bands at
+once, so a hit is strong evidence and a miss is no evidence — weakly-heard polar sites fall below
+the threshold.
+
+## Data handling
+
+`reference/` is **not tracked** and must not be committed: it holds a mailbox export and shipping
+lists containing host home addresses. Host names, addresses, phone numbers and email addresses
+must never appear in `data/` or `products/`.
+
+The `ok_to_list_public` column carries the publication consent inherited from the G3ZIL station
+metadata. It is `unknown` for most stations. **Check it before publishing any station**, including
+in figures built from `products/`.
+
+## Positions
+
+Positions are Maidenhead cell centres, not surveyed coordinates. A 4-character locator is about
+78 km across at 40° latitude. KH2R reports `FN21` to WSPRNet but is really at `FN21us`, 65 km
+away; VY0ERC has only a 4-character locator at 80° N. `grid_precision` in the product says which
+you are looking at.
+
+## Acknowledgements
+
+Supported by the U.S. National Science Foundation under awards OPP-2332427, AGS-2432821,
+AGS-2432822, AGS-2432823 and AGS-2432824. WSPRSonde hardware by Paul Elliott, WB6CXC
+(Turn Island Systems). Spot data from [WsprDaemon](https://wsprdaemon.org) (Rob Robinett, AI6VN)
+and [WSPRNet](https://wsprnet.org). Station metadata and frequency history originally compiled by
+Gwyn Griffiths, G3ZIL.
+
+Portions of this repository were produced with AI assistance; see [`ai/ai_usage_log.md`](ai/ai_usage_log.md).

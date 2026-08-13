@@ -42,3 +42,10 @@ env/
 # Claude Code local state
 .claude/settings.local.json
 CLAUDE.local.md
+
+# Source material containing personal data — never commit.
+# reference/ holds an Outlook mailbox export (the PI's full inbox) and WSPRSonde
+# host shipping lists with home addresses, phone numbers and email addresses.
+# Facts extracted from these belong in data/ and docs/ with the personal data
+# stripped; the originals stay local. See "Data handling" in CLAUDE.md.
+reference/

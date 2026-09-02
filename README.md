@@ -20,6 +20,15 @@ This repository holds two things:
    — a draft for collaborator review covering registry, frequency coordination, monitoring, and
    control-operator positive control.
 
+## Reviewing the requirements
+
+The requirements document is out for collaborator review (Draft 0.2, 2026-09-02) ahead of being
+handed to a University of Scranton Computer Science capstone team. To comment, **file an issue**,
+one per point, using the *Requirement comment* or *Answer to an open question* template; cite the
+requirement by number (`R4.2`, `N3`, `§5.3`) or the question by number (`Q1`). Section 10 of the
+document lists the questions the editor most wants answered, and section 5 (the FCC Part 97
+reading) is the part to read adversarially.
+
 ## Quick start
 
 No dependencies beyond a stock Python 3.10+.

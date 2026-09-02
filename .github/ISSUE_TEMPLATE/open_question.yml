@@ -1,0 +1,25 @@
+name: Answer to an open question
+description: An answer to one of the numbered questions in section 10 of the requirements draft.
+title: "[Q#] "
+labels: ["requirements", "open-question"]
+body:
+  - type: input
+    id: question
+    attributes:
+      label: Question number
+      description: From section 10, e.g. Q1.
+      placeholder: Q1
+    validations:
+      required: true
+  - type: textarea
+    id: answer
+    attributes:
+      label: Answer
+      description: Your answer, with the reasoning and any evidence. If your answer is "it depends", say on what.
+    validations:
+      required: true
+  - type: input
+    id: callsign
+    attributes:
+      label: Callsign
+      description: Optional.

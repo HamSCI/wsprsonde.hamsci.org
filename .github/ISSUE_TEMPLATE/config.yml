@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: The requirements document
+    url: https://github.com/HamSCI/wsprsonde.hamsci.org/blob/main/docs/requirements_wsprsonde_management_system.md
+    about: Read the current draft before filing. Requirements are numbered so you can refer to them exactly.

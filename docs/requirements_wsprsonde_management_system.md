@@ -1,7 +1,7 @@
 # WSPRSonde Management System — Requirements for Discussion
 
-**Status:** Draft 0.1, for collaborator review
-**Date:** 2026-08-13
+**Status:** Draft 0.2, for collaborator review (change log at the end)
+**Date:** 2026-09-02 (Draft 0.1 was 2026-08-13)
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
 **Review list:** Paul Elliott WB6CXC · Rob Robinett AI6VN · Gwyn Griffiths G3ZIL ·
 Gary Mikitin AF8A · Michael Hauan AC0G · Hyomin Kim (NJIT) · Gerard Piccini KD2ZHK ·
@@ -10,9 +10,17 @@ Jonathan D. Rizzo KC3EEY (University of Scranton) · Kristina Collins KD8OXT ·
 Dave Larsen KV0S
 
 > **This is a request for comment, not a specification.** Requirements are numbered so
-> you can reply with "R4.2 is wrong because…" rather than re-prosing the whole thing.
+> you can say "R4.2 is wrong because…" rather than re-prosing the whole thing.
 > Section 10 lists the questions I most want answered. Section 5 concerns FCC rules and
 > is the section I am least confident in — please read it adversarially.
+>
+> **How to comment.** File an issue at
+> <https://github.com/HamSCI/wsprsonde.hamsci.org/issues>, one per point, using the
+> *Requirement comment* or *Answer to an open question* template. Issues are how I track
+> what has been raised and what has been resolved. Email to the editor works too, but
+> anything that changes the document will be turned into an issue so the reasoning is on
+> the record. Comments are being collected against **Draft 0.2**; when a requirement is
+> changed as a result, the change log at the end will say which issue drove it.
 
 ---
 
@@ -55,6 +63,14 @@ whether HamSCI-funded or privately owned, worldwide.
 
 **Not in scope:** PSWS receivers (HFRx, magnetometers, VLF), science data processing, and
 the WsprDaemon infrastructure itself. Those are separate systems this one reads from.
+
+**Who will build it.** The intent is to offer this system to a team of Computer Science
+students at the University of Scranton as a senior capstone project, with the editor as
+faculty sponsor and the people on the review list as the customers. That intent shapes the
+document: the students need a stable, numbered set of requirements to work from, with the
+reasoning attached so they can make design decisions without re-deriving the domain. This
+review round exists to settle that baseline before the capstone proposal is written. See §9
+for what it implies about phasing.
 
 ---
 
@@ -197,14 +213,22 @@ view and an editor over it — not a database whose history lives only in backup
 ## 5. Regulatory basis for positive control
 
 > **Not legal advice.** Rule text below was read from the Cornell LII copy of 47 CFR Part 97
-> on 2026-08-13 and should be re-verified against the current eCFR before anything is built
-> on it. I would like this section reviewed by someone who has actually argued these rules —
-> ARRL regulatory counsel would be the right destination.
+> on 2026-08-13 and re-verified against the eCFR (point-in-time version of 2026-08-29) on
+> 2026-09-02; the quoted passages match the eCFR text. It should still be reviewed by
+> someone who has actually argued these rules — ARRL regulatory counsel would be the right
+> destination.
 
 **5.1 A WSPRSonde is a beacon.** §97.3(a)(9): *"An amateur station transmitting
 communications for the purposes of observation of propagation and reception or other related
 experimental activities."* That is exactly what a WSPRSonde does, and §97.203(g) confirms a
 beacon may transmit one-way communications.
+
+The claim this document makes is therefore **not** that a WSPRSonde is something other than
+a beacon. It is that a WSPRSonde on HF is a beacon under **remote control** (a control
+operator at a control point, reached through a control link) rather than under **automatic
+control** (no control operator present), because automatic control of a beacon is permitted
+only on the segments listed in §97.203(d), and none of the WSPR frequencies below 10 m is
+among them. Reviewers should argue with that reading, not with the word "beacon".
 
 **5.2 Beacon-specific limits we already satisfy — but should verify automatically.**
 
@@ -216,6 +240,11 @@ beacon may transmit one-way communications.
   (CM88mj) on disjoint band sets — 80–10 m and 160/6 m — which is compliant, and would stop
   being compliant if either were reconfigured. This is a rule a computer should check, not a
   person. → **R2.6**
+- §97.203(e): a licensee must notify the National Radio Astronomy Observatory before
+  establishing an *automatically controlled* beacon in the National Radio Quiet Zone, or
+  changing its frequency, power or antenna. It is written for automatic control and no
+  current site is in the Quiet Zone, but the registry should flag any US site whose
+  locator falls inside it so the question is asked at registration rather than afterwards.
 
 **5.3 The part that actually constrains us: automatic control is not available on these
 frequencies.** §97.109(d) permits operation without a control operator at the control point
@@ -238,7 +267,10 @@ control point as *"the location at which the control operator function is perfor
 within 50 km of the Earth's surface may be under telecommand where:
 
 - **(a)** there is a radio or wireline control link between the control point and the
-  station sufficient for the control operator to perform their function;
+  station sufficient for the control operator to perform their function. The rule adds that
+  *"a control link using a fiber optic cable or another telecommunication service is
+  considered wireline"*, so an internet or cellular path from a phone to the sonde is a
+  wireline control link and needs no auxiliary radio station;
 - **(b)** *"Provisions are incorporated to limit transmission by the station to a period of
   no more than 3 minutes in the event of malfunction in the control link."*
 - **(c)** the station is protected against making unauthorized transmissions, willfully or
@@ -365,6 +397,14 @@ rather than defaulting to the FCC's.
   system is worse than none.
 - **R3.8** Retain the monitoring history. "How much of 2026 was this station actually on the
   air" is a question the science will ask, and it cannot be reconstructed later.
+- **R3.9** Alerts carry a **severity** that says what the recipient is expected to do:
+  *informational* (a band dropped out; look when convenient), *attention* (silent for longer
+  than the threshold; investigate), and *immediate* (transmitting on a channel other than
+  the assigned one, transmitting while inhibited, or any condition where the control
+  operator's obligation is engaged). *Immediate* alerts must **escalate**: if the on-duty
+  control operator has not acknowledged within a documented interval, the alert goes to the
+  other designated control operators for that unit (R4.6) and then to the network operator.
+  A control operator who cannot be reached is the situation R4.6 exists to prevent.
 
 ### R4 — Positive control
 
@@ -376,7 +416,11 @@ means of control in their pocket. See §5 for the regulatory reading behind this
   amateur, recorded with licence class and issuing administration.
 - **R4.2** A control operator can **inhibit transmission immediately** from a phone, with no
   more than one deliberate action from opening the app, and no dependence on the site's own
-  network path being healthy in the transmit direction.
+  network path being healthy in the transmit direction. A native smartphone app and a
+  mobile web application are both acceptable; what is required is that the control point
+  fits in a pocket, works on the phone the operator already carries, and can deliver push
+  alerts (R3.7, R3.9). The intent is that the control operator can truthfully say they are
+  at the control point wherever they happen to be.
 - **R4.3** **The interlock lives at the transmitter, not in the web application.** The sonde's
   host computer must require a valid, short-lived authorisation to key the transmitter, and
   must inhibit transmission when it cannot obtain one. This is what makes §97.213(b)
@@ -390,9 +434,15 @@ means of control in their pocket. See §5 for the regulatory reading behind this
   state** — transmitting or inhibited, when the last authorisation was issued and when it
   expires — so that "I am at the control point" is a statement about an observable system and
   not a claim about intent.
-- **R4.6** **Delegation and hand-off.** A control operator must be able to hand responsibility
-  to another named, licensed operator for a defined period, with the change logged. Sites are
-  unattended for months; Antarctic and Arctic sites change staff seasonally.
+- **R4.6** **Delegation, hand-off and a pool of control operators.** A unit's designated
+  control operators (R4.1) form a pool that shares responsibility for it. At every moment
+  exactly one member of the pool is **on duty** for the unit, visible to everyone with access
+  to the unit and recorded in the audit log (R4.7). A control operator must be able to hand
+  duty to another pool member for a defined period (a vacation, a hospital stay, a field
+  season) with the change logged, and the system must warn the pool and the network operator
+  when a duty period is about to lapse with no successor, because a unit with nobody on duty
+  is a unit with no control operator. Sites are unattended for months; Antarctic and Arctic
+  sites change staff seasonally.
 - **R4.7** **Audit log**, append-only: every inhibit, enable, delegation, authorisation lapse
   and configuration change, with actor and timestamp. This is the record that answers a
   regulatory enquiry, and it must be exportable.
@@ -436,8 +486,9 @@ means of control in their pocket. See §5 for the regulatory reading behind this
   hamsci.org URL, showing only consented records.
 - **R7.2** A per-station page suitable for linking from the existing PSWS instrument pages.
 - **R7.3** A public frequency-assignment table, so operators outside HamSCI can see what is
-  in use before choosing a channel. This is what §97.203(e) asks a beacon licensee to do
-  before establishing a beacon, and it is good manners regardless.
+  in use before choosing a channel. Part 97 does not require this (§97.203(e), which Draft
+  0.1 cited here, concerns the National Radio Quiet Zone), but it is how a shared 200 Hz
+  window stays usable, and it is good manners regardless.
 
 ---
 
@@ -521,6 +572,24 @@ Phase 4 deliberately comes last. It touches transmitters people are licensed for
 part where a bug has consequences beyond a wrong number on a web page, and §5 should be
 settled before anyone writes code for it.
 
+**9.1 Delivery as a capstone project.** The plan (§1) is to hand this to a University of
+Scranton Computer Science capstone team, which means roughly one academic year of part-time
+effort by three to five students with faculty supervision and no prior amateur-radio
+background. Three consequences:
+
+- **Phases 1–3 are the capstone.** Registry, monitoring and coordination are conventional
+  web-application work with clear acceptance tests (the registry round-trips the four
+  current sources; the monitor reproduces the §2.2 table; the coordinator refuses the KH2R /
+  DP0GVN collision). They fit the format.
+- **Phase 4 is scoped for the students as a design, a reference implementation of the
+  interlock daemon, and a test harness against a bench unit**, with deployment to licensed
+  stations gated on a review by the control operators concerned and a settled answer to
+  Q1. Students should not be the ones deciding when a transmitter someone else is licensed
+  for goes on or off the air.
+- **The requirements freeze at Draft 1.0 when the capstone proposal is submitted.**
+  Anything raised after that goes into a backlog for the team to weigh, not into the
+  baseline they are graded against. This is why the review round is happening now.
+
 ---
 
 ## 10. Open questions for reviewers
@@ -555,6 +624,13 @@ settled before anyone writes code for it.
 10. **Scope check** — is the transmit side the right boundary, or should this system cover
     PSWS receivers too? Rob's original question was about a "HamSCI monitoring and
     configuration website", which is broader than what is proposed here.
+11. **Capstone fit (§9.1).** Is the split of Phases 1–3 for the students and Phase 4 as
+    design-plus-bench-prototype the right one? Is anything in R1–R3 unreasonable to ask of
+    a student team in one academic year?
+12. **Who will act as a customer for the student team?** A capstone works when the
+    students can put a question to a real user and get an answer within a week. Which
+    reviewers are willing to be named as stakeholders the team may contact, and for which
+    roles in §3?
 
 ---
 
@@ -579,9 +655,29 @@ Sources consulted 2026-08-13:
 - `G3ZIL_WsprSonde_Metadata_V1-1.xlsx`, Griffiths & Elliott, revised 2025-05-11
 - `wsprsonde` table, `wd10.wsprdaemon.org` PostgreSQL database `tutorial`, 139 rows
 - `wspr.rx`, WsprDaemon ClickHouse endpoint — live queries, 2026-08-13
-- 47 CFR §§97.3, 97.109, 97.203, 97.213, via Cornell LII, read 2026-08-13
+- 47 CFR §§97.3, 97.109, 97.203, 97.213, via Cornell LII, read 2026-08-13; re-verified
+  against the eCFR point-in-time version of 2026-08-29 on 2026-09-02
 - <https://hamsci.org/wsprsonde-psws-transmitter>, <https://turnislandsystems.com>
 - `polar-psws/docs/wsprdaemon_extended_spots_access.md` (Frissell, 2026-07-28)
 
 Drafted with AI assistance; see `ai/ai_usage_log.md`. All rule citations, measurements and
 attributions require human verification before this document is acted upon.
+
+---
+
+## Change log
+
+**Draft 0.2, 2026-09-02.** Circulated to the review list. Changes from Draft 0.1:
+
+- Added *How to comment* (GitHub issues) to the preamble, and *Who will build it* to §1.
+- §5: re-verified all quoted rule text against the eCFR. Added the framing paragraph to §5.1
+  (a WSPRSonde remains a beacon; the claim concerns the type of control). Added §97.203(e)
+  (National Radio Quiet Zone) to §5.2. Added the "another telecommunication service is
+  considered wireline" sentence of §97.213(a) to §5.4.
+- **Corrected R7.3**, which cited §97.203(e) for something the rule does not say.
+- Added R3.9 (alert severity and escalation). Expanded R4.2 (phone app) and R4.6 (pool of
+  control operators with an on-duty designation).
+- Added §9.1 (delivery as a capstone project) and Q11–Q12.
+- Review list extended: KA9Q, KC3EEY, KD8OXT, KV0S.
+
+**Draft 0.1, 2026-08-13.** First draft.

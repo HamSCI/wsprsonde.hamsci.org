@@ -1,0 +1,50 @@
+name: Requirement comment
+description: A comment on a numbered requirement or section of the WSPRSonde management-system requirements draft.
+title: "[R#.#] "
+labels: ["requirements"]
+body:
+  - type: input
+    id: ref
+    attributes:
+      label: Requirement or section
+      description: The identifier you are commenting on, e.g. R4.2, N3, §5.3. One issue per point, please.
+      placeholder: R4.2
+    validations:
+      required: true
+  - type: input
+    id: draft
+    attributes:
+      label: Draft version
+      description: From the Status line at the top of the document.
+      placeholder: "0.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of comment
+      options:
+        - Wrong (the requirement or claim is incorrect)
+        - Missing (something the document should require and does not)
+        - Unclear (I cannot tell what is being asked for)
+        - Too much (this should be cut or descoped)
+        - Question
+    validations:
+      required: true
+  - type: textarea
+    id: comment
+    attributes:
+      label: Comment
+      description: What is wrong, missing or unclear, and why. Evidence (a rule citation, a measurement, an operating experience) is worth more than an opinion.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed wording
+      description: Optional. If you can say what the requirement should say instead, write it here and it may be adopted verbatim.
+  - type: input
+    id: callsign
+    attributes:
+      label: Callsign
+      description: Optional. Helps the editor know which perspective (control operator, coordinator, host, scientist) the comment comes from.

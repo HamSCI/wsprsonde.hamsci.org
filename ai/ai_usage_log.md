@@ -56,3 +56,14 @@ Required per University of Scranton AI Policy, HamSCI Generative AI Use Agreemen
 - **Nature of Contribution**: Edit. Names and callsigns were supplied by the PI except KA9Q, which the assistant took from the email domain he supplied; email addresses were deliberately not written into the document.
 - **Human Review Status**: Reviewed and verified (PI dictated the names and inspected the result before committing).
 - **Git Hash**: 0858eba
+
+## 2026-09-02 22:26 UTC
+- **Tool**: Claude (Anthropic), claude-fable-5-1, via Claude Code
+- **Session Purpose**: Prepare the repository and the requirements draft for circulation to the review list, checking both against the PI's cover email (single management system; frequency coordination and a record for science; regulatory case for remote control with a smartphone control point, automatic alerting and a pool of control operators; delivery as a University of Scranton CS capstone; comments via GitHub issues).
+- **Sections/Files Affected**:
+  - `docs/requirements_wsprsonde_management_system.md`: bumped to Draft 0.2 with a change log; added "How to comment" (issues) and "Who will build it" (capstone) to the preamble and §1; §5 re-verified against the eCFR point-in-time version of 2026-08-29 and extended (§5.1 framing paragraph on remote vs automatic control, §5.2 NRQZ note on §97.203(e), §5.4 wireline-link sentence from §97.213(a)); **corrected R7.3**, which had cited §97.203(e) for something the rule does not say; added R3.9 (alert severity and escalation); expanded R4.2 (phone app) and R4.6 (pool of control operators, on-duty designation); added §9.1 (capstone delivery) and Q11–Q12.
+  - `README.md`: new "Reviewing the requirements" section.
+  - `.github/ISSUE_TEMPLATE/{requirement_comment,open_question,config}.yml`: new issue forms.
+- **Nature of Contribution**: Edit and drafting of requirements text; regulatory verification (47 CFR §§97.3, 97.109, 97.203, 97.213 fetched from the eCFR API); repository scaffolding. Also reviewed the PI's cover email; one suggested wording change was withdrawn after the PI pointed out that a beacon is an HF station.
+- **Human Review Status**: Partially reviewed. The PI reviewed the summary of changes and the regulatory reading before committing; the new requirement text (R3.9, R4.2, R4.6, §9.1, Q11–Q12) is drafted for the PI's review alongside the collaborators'. Flagged and deliberately not changed: personal names in the `notes` column of `data/wsprsonde_stations.csv` in a public repository, contrary to the repo's own data-handling rule; and a quotation from a private email in §2.1.
+- **Git Hash**: [fill in after committing]

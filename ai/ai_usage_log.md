@@ -74,4 +74,4 @@ Required per University of Scranton AI Policy, HamSCI Generative AI Use Agreemen
 - **Sections/Files Affected**: `docs/requirements_wsprsonde_management_system.md`, header "Review list" and the Draft 0.2 change log.
 - **Nature of Contribution**: Edit.
 - **Human Review Status**: Reviewed and verified (PI dictated the change and inspected the result).
-- **Git Hash**: [fill in after committing]
+- **Git Hash**: bc0d963

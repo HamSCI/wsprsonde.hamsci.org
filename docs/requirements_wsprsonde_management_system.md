@@ -5,7 +5,9 @@
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
 **Review list:** Paul Elliott WB6CXC · Rob Robinett AI6VN · Gwyn Griffiths G3ZIL ·
 Gary Mikitin AF8A · Michael Hauan AC0G · Hyomin Kim (NJIT) · Gerard Piccini KD2ZHK ·
-Majid Mokhtari · David Witten KD0EAG
+Majid Mokhtari · David Witten KD0EAG · Phil Karn KA9Q ·
+Jonathan D. Rizzo KC3EEY (University of Scranton) · Kristina Collins KD8OXT ·
+Dave Larsen KV0S
 
 > **This is a request for comment, not a specification.** Requirements are numbered so
 > you can reply with "R4.2 is wrong because…" rather than re-prosing the whole thing.

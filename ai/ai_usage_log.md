@@ -48,3 +48,11 @@ Required per University of Scranton AI Policy, HamSCI Generative AI Use Agreemen
   4. **The four unlisted candidate transmitters** (DC7TO, ZD7GWM, N9VP, G0PKT) are the output of a detection heuristic, not confirmed WSPRSondes.
   5. Personal data (host names, street addresses, emails, phone numbers) was deliberately excluded from all tracked files; `reference/` was gitignored. Confirm nothing leaked before the first push.
 - **Git Hash**: a9d7a50 (polar-psws vendored copy: 704bef1)
+
+## 2026-09-02 22:09 UTC
+- **Tool**: Claude (Anthropic), claude-fable-5-1, via Claude Code
+- **Session Purpose**: Extend the review list of the WSPRSonde management-system requirements document (Draft 0.1) with four additional reviewers named by the PI: Phil Karn KA9Q, Jonathan D. Rizzo KC3EEY, Kristina Collins KD8OXT and Dave Larsen KV0S.
+- **Sections/Files Affected**: `docs/requirements_wsprsonde_management_system.md`, header "Review list" only.
+- **Nature of Contribution**: Edit. Names and callsigns were supplied by the PI except KA9Q, which the assistant took from the email domain he supplied; email addresses were deliberately not written into the document.
+- **Human Review Status**: Reviewed and verified (PI dictated the names and inspected the result before committing).
+- **Git Hash**: [fill in after committing]

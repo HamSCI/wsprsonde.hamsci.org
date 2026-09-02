@@ -5,9 +5,8 @@
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
 **Review list:** Paul Elliott WB6CXC · Rob Robinett AI6VN · Gwyn Griffiths G3ZIL ·
 Gary Mikitin AF8A · Michael Hauan AC0G · Hyomin Kim (NJIT) · Gerard Piccini KD2ZHK ·
-Majid Mokhtari · David Witten KD0EAG · Phil Karn KA9Q ·
-Jonathan D. Rizzo KC3EEY (University of Scranton) · Kristina Collins KD8OXT ·
-Dave Larsen KV0S
+David Witten KD0EAG · Phil Karn KA9Q · Jonathan D. Rizzo KC3EEY (University of Scranton) ·
+Kristina Collins KD8OXT · Dave Larsen KV0S
 
 > **This is a request for comment, not a specification.** Requirements are numbered so
 > you can say "R4.2 is wrong because…" rather than re-prosing the whole thing.
@@ -678,6 +677,6 @@ attributions require human verification before this document is acted upon.
 - Added R3.9 (alert severity and escalation). Expanded R4.2 (phone app) and R4.6 (pool of
   control operators with an on-duty designation).
 - Added §9.1 (delivery as a capstone project) and Q11–Q12.
-- Review list extended: KA9Q, KC3EEY, KD8OXT, KV0S.
+- Review list extended: KA9Q, KC3EEY, KD8OXT, KV0S. Majid Mokhtari removed.
 
 **Draft 0.1, 2026-08-13.** First draft.

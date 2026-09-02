@@ -66,4 +66,4 @@ Required per University of Scranton AI Policy, HamSCI Generative AI Use Agreemen
   - `.github/ISSUE_TEMPLATE/{requirement_comment,open_question,config}.yml`: new issue forms.
 - **Nature of Contribution**: Edit and drafting of requirements text; regulatory verification (47 CFR §§97.3, 97.109, 97.203, 97.213 fetched from the eCFR API); repository scaffolding. Also reviewed the PI's cover email; one suggested wording change was withdrawn after the PI pointed out that a beacon is an HF station.
 - **Human Review Status**: Partially reviewed. The PI reviewed the summary of changes and the regulatory reading before committing; the new requirement text (R3.9, R4.2, R4.6, §9.1, Q11–Q12) is drafted for the PI's review alongside the collaborators'. Flagged and deliberately not changed: personal names in the `notes` column of `data/wsprsonde_stations.csv` in a public repository, contrary to the repo's own data-handling rule; and a quotation from a private email in §2.1.
-- **Git Hash**: [fill in after committing]
+- **Git Hash**: f0c56f8

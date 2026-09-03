@@ -75,3 +75,14 @@ Required per University of Scranton AI Policy, HamSCI Generative AI Use Agreemen
 - **Nature of Contribution**: Edit.
 - **Human Review Status**: Reviewed and verified (PI dictated the change and inspected the result).
 - **Git Hash**: bc0d963
+
+## 2026-09-03 14:20 UTC
+- **Tool**: Claude (Anthropic), claude-opus-5, via Claude Code
+- **Session Purpose**: Answer the first round of review comments on the requirements draft (GitHub issues #1–#4, all from Paul Elliott WB6CXC), verifying each against primary sources, and act on them in the document as Draft 0.3.
+- **Sections/Files Affected**:
+  - GitHub issues #1–#4: one reply comment each, drafted and shown to the PI before posting, each carrying the A8 attribution trailer and asking the reporter to close the issue if satisfied. The four comments were shortened and re-posted at the PI's direction, to state plainly what changed in the document.
+  - `docs/requirements_wsprsonde_management_system.md`: bumped to Draft 0.3 with a change log entry citing each issue. §2.2 N4RVE row and prose corrected (nine-day power-supply outage, returned on its assigned 100 Hz channel); §2.4 and Q10.5 closed against the callsign-suffix proposal; §4.1 gains MeshCentral's role as keep-alive transport with its availability cost; §5.5 and R4.3 rewritten around the WSPRSonde's own dead-man, including the interval arithmetic against a 110.6 s frame and the requirement that the keep-alive be contingent on contact with the control point; R4.5, the §8 sketch, §9.1 and §11 aligned to the same mechanism; Q10.1 and Q10.2 updated; provenance extended.
+  - `data/wsprsonde_stations.csv`: removed the stale claim that N4RVE's on-air offset is ~10 Hz, which the spot record contradicts on both sides of the outage.
+- **Nature of Contribution**: Analysis and drafting. Live queries against `wspr.rx` on `wd10.wsprdaemon.org` established N4RVE's outage boundaries (2026-08-09 23:20 UTC to 2026-08-18 23:20 UTC) and its present offset (100 Hz median on eight bands, 0 Hz spread). 47 CFR §§97.109, 97.203 and 97.213 re-read from Cornell LII to check the three-minute claim in issue #4, which is §97.213(b), telecommand, rather than a rule of automatic control. WSPR compound-callsign encoding checked against published protocol documentation for issue #2.
+- **Human Review Status**: Partially reviewed. The PI read all four draft comments before they were posted and approved the document changes. The interval arithmetic in §5.5 and R4.3 rests on hardware behaviour that is still an open question with the manufacturer. `products/` was rebuilt during the session and then reverted: that rebuild raised a false frequency mismatch for VY0ERC, because the three-day offset window drops weakly-heard bands and so manufactures a single offset where none exists, contrary to R3.3. Pending the PI's decision.
+- **Git Hash**: [pending]

@@ -96,4 +96,4 @@ Required per University of Scranton AI Policy, HamSCI Generative AI Use Agreemen
   - `data/wsprsonde_stations.csv`: KD0EAG's hardware corrected from `WS-6` to `BB-6`, with the provenance of the change recorded in its notes.
 - **Nature of Contribution**: Analysis and drafting. The hardware facts are the manufacturer's, quoted from the issues; the compliance arithmetic (the once-a-minute test interval, the resulting 1-minute setting) and the shared-channel consequence in R4.11 are this session's, derived from those facts and §97.213(b).
 - **Human Review Status**: Partially reviewed. The PI approved both draft comments and the document changes before posting. Two items are open with the manufacturer and marked as such: the correct designation for the `WS-6` entries inherited from the G3ZIL metadata, and whether the licence holders accept a MeshCentral outage taking their stations off the air (Q10.2).
-- **Git Hash**: [pending]
+- **Git Hash**: bcc30cc

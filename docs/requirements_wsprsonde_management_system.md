@@ -1,7 +1,8 @@
 # WSPRSonde Management System — Requirements for Discussion
 
-**Status:** Draft 0.3, for collaborator review (change log at the end)
-**Date:** 2026-09-03 (Draft 0.2 was 2026-09-02; Draft 0.1 was 2026-08-13)
+**Status:** Draft 0.4, for collaborator review (change log at the end)
+**Date:** 2026-09-03 (Drafts 0.2 and 0.3 were 2026-09-02 and 2026-09-03; Draft 0.1 was
+2026-08-13)
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
 **Review list:** Paul Elliott WB6CXC · Rob Robinett AI6VN · Gwyn Griffiths G3ZIL ·
 Gary Mikitin AF8A · Michael Hauan AC0G · Hyomin Kim (NJIT) · Gerard Piccini KD2ZHK ·
@@ -18,7 +19,7 @@ Kristina Collins KD8OXT · Dave Larsen KV0S
 > *Requirement comment* or *Answer to an open question* template. Issues are how I track
 > what has been raised and what has been resolved. Email to the editor works too, but
 > anything that changes the document will be turned into an issue so the reasoning is on
-> the record. Comments are being collected against **Draft 0.3**; when a requirement is
+> the record. Comments are being collected against **Draft 0.4**; when a requirement is
 > changed as a result, the change log at the end will say which issue drove it.
 
 ---
@@ -102,9 +103,13 @@ Measuring the on-air offset of every listed callsign against its assignment:
 | **VY0ERC** | 150 Hz | bands disagree by 115 Hz | **not measurable** |
 | N4RVE | 100 Hz | 100 Hz | ok, after a **nine-day outage** |
 
-KD0EAG is explicable — the replacement WS-8 configured at 80 Hz has not been deployed and
-the old BeaconBlaster is still running — but nothing in the current arrangement would have
-surfaced it. N4RVE was off the air for nine days, from 2026-08-09 23:20 UTC to
+KD0EAG is explicable, because the replacement WS-8 configured at 80 Hz has not been deployed
+and the old BeaconBlaster is still running, and nothing in the current arrangement would have
+surfaced it. The BeaconBlaster has no dead-man
+([issue #3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3)), so completing that
+swap now settles a compliance question as well as a frequency one (§5.5, R4.3).
+
+N4RVE was off the air for nine days, from 2026-08-09 23:20 UTC to
 2026-08-18 23:20 UTC, and nobody was told; Paul Elliott reported the cause as a power supply
 failure and the station returned on its assigned 100 Hz channel on all eight bands
 ([issue #1](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/1), measurements re-run
@@ -200,8 +205,14 @@ different role: the interlock stays in the transmitter (R4.3) and MeshCentral su
 end-to-end path whose loss trips it. Paul Elliott suggested this in
 [issue #3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3). The cost to accept
 openly is that a `meshcentral.hamsci.org` outage then takes every US unit off the air within
-one dead-man interval. That is the correct direction to fail (N4, R4.4), and the exposure it
-creates is what Q10.2 asks about.
+one dead-man interval, and the dead-man re-arms on its own when the path returns, so the
+outage costs downtime rather than a site visit. That is the correct direction to fail
+(N4, R4.4), and the exposure it creates is what Q10.2 asks about.
+
+**Its remote terminal is a hazard to the interlock.** A shell on the host reaches the
+WSPRSonde's command line, and any command there re-arms the dead-man, so an open session is
+an authorisation nobody issued. Interactive access has to be brokered and time-limited
+(R4.11).
 
 **4.2 The WsprDaemon archive.** Reachable over the ClickHouse HTTP interface at
 `http://wd10.wsprdaemon.org/` with no credentials (mirrors on `wd1`, `wd2`). `wspr.rx`
@@ -307,21 +318,21 @@ whole feature. A web dashboard the operator can visit does not satisfy it: a das
 way to look, and the rule demands that transmission *stop* when the link fails. What
 satisfies it is an interlock at the transmitter, and the WSPRSonde already has one.
 
-**The mechanism is the WSPRSonde's dead-man.** Paul Elliott reports that a WS can be
-configured to shut its transmitters down after a set interval with no serial-port traffic
-from the host computer, that the interval can be set shorter than a WSPR frame, and that a
-keep-alive could be delivered over MeshCentral
-([issue #3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3)). No "ask for
-permission to transmit" feature is needed in the sonde, and no timer in the web application
-can be misconfigured into non-compliance.
+**The mechanism is the WSPRSonde's dead-man**, and its behaviour is now on the record from
+its designer ([issue #3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3)). A WS-8
+can be configured to shut its transmitters down after an interval with no inbound
+command-line traffic. When it fires the transmissions stop immediately, with no frame
+overhang, and it re-arms the moment inbound activity resumes, so a network outage costs one
+dead-man interval of downtime and needs no site visit. The interval ranges from 1 to 12,000
+minutes, 0 disables it, and the condition is tested once a minute. No "ask for permission to
+transmit" feature is needed in the sonde, and no timer in the web application can be
+misconfigured into non-compliance.
 
-**The interval that complies depends on what the dead-man does to a frame in progress**, and
-a WSPR frame lasts about 110.6 s. If the dead-man drops the transmitters where it fires, an
-interval of three minutes or less satisfies paragraph (b) on its own. If instead it declines
-to start the next frame, transmission runs to the end of the frame already keyed, so the
-bound becomes the interval plus up to 110.6 s and the interval must sit below about 69 s.
-Which of the two the hardware does is therefore the first thing to establish, and the
-requirement is written as a worst case rather than as a fixed number (R4.3).
+**One minute is the setting.** Because the test runs once a minute, the worst case is the
+configured interval plus up to another minute, so a 1-minute interval stops transmission
+within two minutes of the last keep-alive and 2 minutes is the ceiling that still fits inside
+§97.213(b). The keep-alive should therefore be sent every 15 to 30 s, which leaves room for a
+retry before the transmitters drop.
 
 **The keep-alive must be conditional on the control link, and this is the load-bearing
 detail.** Paragraph (b) is triggered by a malfunction in the *control link*, so a keep-alive
@@ -334,16 +345,21 @@ to stay under three minutes is consequently the **renewal interval over the cont
 not merely the dead-man timeout at the transmitter, which also settles Q10.2: a long-lived
 authorisation with a purely local watchdog is not available to a US station.
 
+**Two consequences follow from how the dead-man is fed.** Any inbound command re-arms it, so
+the keep-alive is indistinguishable from ordinary traffic on the same port: a monitoring
+script, a diagnostic session, or an open MeshCentral terminal all pet the dog, and one left
+running is an indefinite authorisation nobody issued. Outbound traffic is safe to read,
+because the per-frame reports the WS-8 emits carry the text `Watchdog shutdown` when it has
+tripped, which gives R4.5 an observable state with no query. **R4.11** covers both.
+
+**The BeaconBlaster has no dead-man.** Its interlock cannot be retrofitted in software, and
+Paul Elliott's preference is to replace the remaining unit with a WS-8 rather than revise the
+older firmware. A BeaconBlaster at a US site therefore cannot satisfy R4.3, which makes
+KD0EAG's replacement a compliance question rather than only the frequency question of §2.2.
+
 That is the mechanism this document proposes (R4.3). It also happens to give the control
 operator the thing they actually want: a single control they can hit from a phone that
 demonstrably stops the transmitter.
-
-**Open with the manufacturer** ([issue #3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3)):
-whether the dead-man drops the transmitters mid-frame or refuses the next one; whether it
-re-arms automatically when serial traffic resumes or needs a manual reset; the configurable
-range of the interval; which hardware carries it (WS-8, WS-6, BB-6, and from which firmware,
-which matters because KD0EAG is still a BeaconBlaster); and whether its armed or tripped
-state can be read back over the serial port to feed R4.5.
 
 **5.6 Jurisdiction.** Part 97 governs US stations only. The network already includes
 DP0GVN (German licence, Antarctica), VY0ERC (Canada, ISED), TI4JWC (Costa Rica) and VU24JD
@@ -361,13 +377,18 @@ rather than defaulting to the FCC's.
 
 - **R1.1** One record per **unit** (a physical transmitter), keyed by a stable identifier
   independent of callsign. Callsigns change: the Friday Harbor station is recorded as
-  WB6CXC in Gwyn's metadata and transmits as N4RVE today.
+  WB6CXC in Gwyn's metadata and transmits as N4RVE today. **Use the hardware's own
+  identifier.** Every WS-8 carries a unique 24-bit serial number, derived from its
+  microcontroller's, readable over the command line (Paul Elliott,
+  [issue #2](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/2)). The number written on
+  the enclosure is unrelated to it, so record that separately and never key on it.
 - **R1.2** Units group into **sites**. A site is one location and one dot on a map; a site
   may hold more than one unit (WB6CXC at CM88mj).
 - **R1.3** Each unit record must carry, at minimum: identifier, site, current callsign and
   callsign history, licensee, control operator(s), host, Maidenhead locator with its
-  precision, hardware model (BB-6 / WS-6 / WS-8 / successor), GPSDO type, antenna, modes,
-  in-service and out-of-service dates, funding source, and free-text notes.
+  precision, hardware model (BeaconBlaster / WS-8 / successor), hardware serial number,
+  enclosure marking, firmware version, GPSDO type, antenna, modes, in-service and
+  out-of-service dates, funding source, and free-text notes.
 - **R1.4** All history is **interval-valued**, following §4.3's schema. "Where was DP0GVN in
   March 2025" must be answerable, because a study spanning a reconfiguration otherwise
   silently mixes two different stations.
@@ -389,9 +410,10 @@ rather than defaulting to the FCC's.
 
 ### R2 — Frequency coordination
 
-- **R2.1** Record, per unit, the **assigned** channel offset (Hz above the bottom of the
-  200 Hz WSPR/FST4W window) and the **measured** per-band transmit frequency to 1 mHz,
-  following the existing `wsprsonde` table's resolution.
+- **R2.1** Record, per unit, three things that are usually assumed to agree and sometimes do
+  not: the **assigned** channel offset (Hz above the bottom of the 200 Hz WSPR/FST4W window),
+  the **configured** frequency list read from the unit itself (R3.10), and the **measured**
+  per-band transmit frequency to 1 mHz, following the existing `wsprsonde` table's resolution.
 - **R2.2** Support the current allocation scheme: one offset applied to all of a unit's
   bands, allocated on a 10 Hz grid from 1450 Hz upward, with the pre-existing off-sequence
   assignments (TI4JWC 1415, KH2R 1436, DP0GVN 1437, WB6CXC 1535) recorded as exceptions
@@ -400,7 +422,10 @@ rather than defaulting to the FCC's.
   configurable guard band. Flag existing collisions: KH2R and DP0GVN are 1 Hz apart.
 - **R2.4** Check assignments against **non-sonde WSPR activity** in the same window, not
   only against other sondes. The WSPR window is shared with everyone.
-- **R2.5** Continuously compare measured against assigned (R3.3) and raise a discrepancy.
+- **R2.5** Continuously compare all three legs of R2.1 and raise a discrepancy. Assigned
+  against configured catches a unit that was never reconfigured; configured against measured
+  catches a unit that is not doing what it was told. §2.2's KD0EAG row is the first case and
+  would have been visible the day the assignment was made.
 - **R2.6** Enforce §97.203(b) for US stations: no two units at the same site may be assigned
   channels in the same band. See §5.2.
 - **R2.7** The coordinator role must be able to issue assignments for units **outside**
@@ -456,6 +481,13 @@ rather than defaulting to the FCC's.
   control operator has not acknowledged within a documented interval, the alert goes to the
   other designated control operators for that unit (R4.6) and then to the network operator.
   A control operator who cannot be reached is the situation R4.6 exists to prevent.
+- **R3.10** **Read the unit's own report.** A WS-8 answers a `CSV` command over its command
+  line with a comma-delimited line carrying its serial number, software version, configured
+  transmit frequency list and status, and it emits a report of the same kind after each frame
+  (Paul Elliott, [issue #2](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/2)). Record
+  it per unit and use it for the configured leg of R2.1, for firmware inventory, and for the
+  dead-man state in R4.11. Reading the outbound stream is passive; issuing the command is
+  not, so this traffic goes through the daemon of R4.11 like everything else.
 
 ### R4 — Positive control
 
@@ -473,17 +505,15 @@ means of control in their pocket. See §5 for the regulatory reading behind this
   alerts (R3.7, R3.9). The intent is that the control operator can truthfully say they are
   at the control point wherever they happen to be.
 - **R4.3** **The interlock lives in the transmitter.** Transmission must depend on the
-  WSPRSonde's own dead-man, configured to shut the transmitters down after an interval of
-  no serial-port traffic from the host computer. The interval must be set so that
-  **transmission ends within three minutes of the last keep-alive in the worst case**,
-  which means three minutes or less if the dead-man cuts a frame in progress and about 69 s
-  or less if it lets the keyed frame finish (§5.5, §97.213(b)). The host feeds the
-  keep-alive **only while it holds current contact with the control point**, and stops
-  feeding it the moment that contact lapses; a
-  keep-alive generated locally satisfies nothing, because the condition the rule cares about
-  is a control-link malfunction. The management system's role is to decide whether the host
-  should keep feeding the dead-man, and nothing in the keying path may depend on the web
-  application (N4).
+  WSPRSonde's own dead-man, set to **1 minute** and never above 2, which bounds transmission
+  after the last keep-alive at two to three minutes once the once-a-minute test is counted
+  (§5.5, §97.213(b)). The host feeds the keep-alive **only while it holds current contact
+  with the control point**, and stops feeding it the moment that contact lapses; a keep-alive
+  generated locally satisfies nothing, because the condition the rule cares about is a
+  control-link malfunction. The management system's role is to decide whether the host should
+  keep feeding the dead-man, and nothing in the keying path may depend on the web application
+  (N4). A unit with no dead-man cannot meet this requirement, which today means the
+  BeaconBlaster at KD0EAG.
 - **R4.4** **Fail safe.** Loss of the control link, an expired token, an unreachable server,
   or a clock disagreement must all result in *not transmitting*. The failure mode of a bug in
   this subsystem must be a silent beacon, never an uncontrolled one.
@@ -512,6 +542,15 @@ means of control in their pocket. See §5 for the regulatory reading behind this
   copy, licensee and control-operator name, address and telephone — so a host can print a
   correct label rather than assemble one. The system stores it; the human still has to put it
   on the wall.
+- **R4.11** **The keep-alive daemon owns the command line.** Any inbound command re-arms the
+  dead-man, so every other path to the unit's serial port has to run through the daemon,
+  which withholds all traffic while it lacks authorisation. Interactive access for
+  configuration and diagnosis (§4.1) must be brokered the same way, because a terminal left
+  open is an authorisation nobody issued and one that outlives the operator's attention.
+  Sessions must therefore expire. The system must also **verify that the dead-man is armed**
+  at each US unit, treating a `0` interval as a fault at *immediate* severity (R3.9), and
+  must read the tripped state from the outbound per-frame report rather than by querying the
+  unit, since a query is itself a keep-alive.
 
 ### R5 — Access control
 
@@ -674,10 +713,11 @@ background. Three consequences:
    question was originally asked about (§5.5,
    [issue #3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3)), and a longer-lived
    token with a purely local watchdog is unavailable for a US station, because §97.213(b)
-   bounds the renewal interval over the control link at three minutes. What remains open is
-   the availability question: how robust the keep-alive path has to be, and whether a
-   MeshCentral outage taking the whole US network off the air within one interval is
-   acceptable to the people who own the licences.
+   bounds the renewal interval over the control link at three minutes. The dead-man re-arms
+   by itself when traffic resumes, so an outage costs a minute or two of transmission rather
+   than a truck roll. What remains open is whether the licence holders accept that a
+   MeshCentral outage takes their stations off the air at all, and how much redundancy the
+   keep-alive path therefore needs.
 3. **Should the interlock be mandatory for HamSCI-funded units** and optional for privately
    owned ones, or uniform?
 4. **Who owns the registry after this is built?** Gwyn has been explicit that he wants a
@@ -740,13 +780,15 @@ Sources consulted 2026-08-13:
 - <https://hamsci.org/wsprsonde-psws-transmitter>, <https://turnislandsystems.com>
 - `polar-psws/docs/wsprdaemon_extended_spots_access.md` (Frissell, 2026-07-28)
 
-Added 2026-09-03, for Draft 0.3:
+Added 2026-09-03, for Drafts 0.3 and 0.4:
 
 - Reviewer comments, GitHub issues
   [#1](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/1),
   [#2](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/2),
   [#3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3) and
-  [#4](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/4) (Paul Elliott WB6CXC)
+  [#4](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/4) (Paul Elliott WB6CXC),
+  including his answers of 2026-09-03 on the WS-8 serial number and `CSV` command (#2) and on
+  the dead-man's behaviour, range and hardware coverage (#3)
 - `wspr.rx`, WsprDaemon ClickHouse endpoint: live queries for N4RVE, 2026-09-03
 - WSPR message types and compound-callsign forms, <https://dxplorer.net/wspr/msgtypes.html>
 - ARRL, *Link & Remote Control*, <http://www.arrl.org/link-remote-control>
@@ -757,6 +799,33 @@ attributions require human verification before this document is acted upon.
 ---
 
 ## Change log
+
+**Draft 0.4, 2026-09-03.** Paul Elliott's answers to the questions Draft 0.3 put back to him.
+Changes from Draft 0.3:
+
+- **§5.5 and R4.3 now carry measured hardware behaviour** (issue #3). The WS-8 dead-man stops
+  transmission immediately when it fires, re-arms by itself when inbound command-line traffic
+  resumes, and accepts 1 to 12,000 minutes with the condition tested once a minute. The
+  setting is therefore **1 minute**, 2 being the ceiling that still fits §97.213(b) once the
+  test interval is counted, and the 69-second branch of Draft 0.3 is gone. The BeaconBlaster
+  has no dead-man and cannot be brought into compliance in software, which makes the KD0EAG
+  replacement a compliance matter (§2.2).
+- **Added R4.11** (issue #3): the keep-alive daemon owns the command line. Any inbound command
+  re-arms the dead-man, so an open MeshCentral terminal is an authorisation nobody issued;
+  interactive access must be brokered and time-limited, a `0` interval is an *immediate* fault,
+  and the tripped state is read from the outbound per-frame report rather than by a query,
+  since a query is itself a keep-alive. §4.1 carries the same warning.
+- **Added R3.10 and amended R2.1 and R2.5** (issue #2): the WS-8's `CSV` command returns its
+  serial number, software version, configured frequency list and status. Frequency
+  coordination therefore has three legs to compare, assigned against configured against
+  measured, where Draft 0.3 had two. KD0EAG would have been visible on the day of assignment.
+- **R1.1 and R1.3** (issue #2): the unit key is the WS-8's 24-bit serial number, with the
+  enclosure marking recorded separately and never keyed on. The record gains serial number,
+  enclosure marking and firmware version. The model list drops `WS-6`, which the manufacturer
+  says does not exist; `data/wsprsonde_stations.csv` had KD0EAG recorded under it and now
+  reads `BB-6`, with the provenance noted.
+- **Q10.2** narrows again: automatic re-arming means an outage costs downtime rather than a
+  truck roll, leaving the question of how much redundancy the keep-alive path needs.
 
 **Draft 0.3, 2026-09-03.** First round of reviewer comments, all from Paul Elliott WB6CXC.
 Changes from Draft 0.2:

@@ -107,7 +107,7 @@ them is manual work that nobody owns. G3ZIL has said the table "does need updati
 rather than me."
 
 **The assigned frequency and the transmitted frequency are not the same thing.** Measuring the
-on-air channel offset of every listed station against its assignment, on 13 August 2026,
+on-air channel offset of every listed station against its assignment, on 10 September 2026,
 produced this:
 
 | Callsign | Assigned | Measured | Verdict |
@@ -116,27 +116,31 @@ produced this:
 | **KH2R** | **36 Hz** | **35 Hz** | **1 Hz below assignment** |
 | DP0GVN | 37 Hz | 37 Hz | ok |
 | WW0WWV | 50 Hz | 50 Hz | ok |
-| TI4JWC | 15 Hz | 16 Hz | ok |
-| **KD0EAG** | **80 Hz** | **131 Hz** | **mismatch** |
-| **VY0ERC** | 150 Hz | bands disagree by 115 Hz | **not measurable** |
+| TI4JWC | 15 Hz | 15 Hz | ok |
+| **KD0EAG** | **80 Hz** | **128 Hz** | **mismatch** |
+| **VY0ERC** | 150 Hz | too few reports | **not measurable** |
 | N4RVE | 100 Hz | 100 Hz | ok, after a nine-day outage |
+| **W8GPS** | **none on record** | 60 Hz | **unassigned** |
+| **ZD7GWM** | 100 Hz nominal, **uncoordinated** | 100 Hz | **collides with N4RVE** |
 
 Each row is a finding. KD0EAG has an explanation, because a replacement unit configured for the
 right channel was never deployed and the old one is still running, but nothing in the current
 arrangement would have surfaced it. VY0ERC is heard by so few receivers that its channel cannot
 be verified at all from the spot record, which is itself worth knowing. N4RVE went off the air on
 9 August 2026 and stayed off for nine days, and the outage was discovered by a script rather than
-by a person. KH2R's row is the kind of finding a repeat measurement produces: the crowd-sourced
-median read 36 Hz in August and 35 Hz in September, and a ground-wave measurement by G3ZIL settled
-it at 35 Hz. One hertz is the resolution limit of the method, which is why the system records the
-assigned and the measured value separately rather than reconciling them into one number.
+by a person. KH2R's row shows what a repeat measurement is worth: the crowd-sourced median read
+36 Hz in August and 35 Hz in September, and a ground-wave measurement by G3ZIL settled it at
+35 Hz. One hertz is the resolution limit of the method, which is why the system records the
+assigned and the measured value separately rather than reconciling them into one number. The last
+two rows are stations that were on the air with no coordinated assignment at all, and one of them
+is sharing a channel with a HamSCI unit.
 
 **Frequency collisions are already on the books.** KH2R and DP0GVN are assigned one hertz apart.
 WB6CXC flagged it by email in August 2026 and one of them should move. Worse, a privately owned
 WSPRSonde on St Helena transmits on the channel assigned to a HamSCI unit in Washington State, and
-both were measured on the same channel on five common bands in September 2026; it was never in a
-list anyone could check against. No tool would have caught either at assignment time, and no tool would catch the
-next one.
+both were measured on the same channel on five common bands in September 2026. It was never in a
+list anyone could check against. No tool would have caught either at assignment time, and no tool
+would catch the next one.
 
 **"Which of these transmitters is a WSPRSonde?" has no answer in the data.** A scan of the spot
 archive on 13 August 2026 identified nine transmitters keying many bands in the same two-minute
@@ -239,7 +243,10 @@ stops the transmitter within about two minutes. Nothing in that chain depends on
 application staying up: its failure mode is the same as its silence.
 
 **Products.** A versioned, citable data feed for downstream consumers. The `polar-psws` station
-maps already consume the prototype version of exactly this file.
+maps already consume the prototype version of exactly this file, and a Grafana dashboard
+maintained by G3ZIL plots per-station Doppler shift from the recorded transmit frequency. That
+dashboard is a constraint as much as a resource: it must keep working through whatever the team
+does to the table underneath it.
 
 ## 5. Draft Technical Requirements
 
@@ -250,10 +257,10 @@ traced to a requirement, is the team's first deliverable.
 
 | # | Requirement (initial target) |
 |---|---|
-| R1 | **Unit and site registry.** One record per physical transmitter, keyed on the hardware's own serial number, grouped into sites. Carries callsign and callsign history, licensee, control operators, host, position with stated precision, hardware model, firmware version, antenna, modes, in-service dates, funding source, and deployment pipeline state from `in_stock` through `on_air` to `retired`. |
+| R1 | **Unit and site registry.** One record per physical transmitter, keyed on the hardware's own serial number, grouped into sites. Carries callsign and callsign history, licensee, control operators, host, position with stated precision, hardware model, firmware version, antenna, transmit mode and its numeric code, in-service dates, funding source, and deployment pipeline state from `in_stock` through `on_air` to `retired`. A unit transmits WSPR *or* FST4W and several have changed over their lives, and the numeric code for a given mode differs between data sources, so the mode is stored by name and the code is stored per source. |
 | R2 | **Interval-valued history.** Every fact about a unit is valid over a time interval, and any past state must be reconstructable. The canonical store is a versioned text file in Git; the application is a view and an editor over it. |
 | R3 | **Publication consent per field group.** Every record carries an explicit consent flag for position, operator name, and contact details, defaulting to *not published*. Host street addresses, emails, and phone numbers must never appear in any exported product. |
-| R4 | **Channel coordination.** Record assigned channel offsets, refuse or warn on a colliding assignment with a configurable guard band, check proposed channels against non-WSPRSonde traffic in the same window, and enforce the one-channel-per-band-per-site rule. Assignments must be issuable for units outside HamSCI, because the manufacturer ships to people who are not in the programme. |
+| R4 | **Channel coordination.** Record assigned channel offsets, refuse or warn on a colliding assignment with a configurable guard band, check proposed channels against non-WSPRSonde traffic in the same window, and enforce the one-channel-per-band-per-site rule. Assignments must be issuable for units outside HamSCI, because the manufacturer ships to people who are not in the programme, and an uncoordinated private unit is already sharing a channel with a HamSCI one. A unit whose bands legitimately carry different offsets must be recordable as such rather than reported as a fault. |
 | R5 | **Three-way channel verification.** Compare the **assigned** offset, the **configured** offset read from the unit itself, and the **measured** offset derived from reception reports. Raise a discrepancy on any disagreement. Assigned against configured catches a unit nobody reconfigured; configured against measured catches a unit that is not doing what it was told. |
 | R6 | **On-air monitoring.** Poll the WsprDaemon archive on a schedule, record per unit the last spot, reporter count, bands, reported grid, and reported power, and classify state as active, intermittent, or silent against documented thresholds. Treat "not heard" as evidence of nothing being received rather than proof that a transmitter is dead. |
 | R7 | **Fault detection and alerting.** Alert on a reported grid or power that disagrees with the registry, on a single band dropping out while others continue, and on a collapse in reporter count that regional stations do not share. Alerts carry a severity that says what the recipient must do, are de-duplicated and rate-limited, escalate when unacknowledged, and go out by a channel the recipient chose. |
@@ -462,7 +469,7 @@ normally available to capstone projects:
   the data product that `polar-psws` consumes. It is a specification by example, and the team is
   free to keep, replace, or improve any of it.
 - **Read access to the archives:** the WsprDaemon ClickHouse endpoint, the historical frequency
-  table, and MeshCentral for the HamSCI fleet.
+  table, the WSPRSonde Grafana dashboard built over it, and MeshCentral for the HamSCI fleet.
 - **Hardware for bench work:** a WSPRSonde and a Raspberry Pi host in the Scranton lab, for the
   device integration and the interlock harness.
 - **Hosting on HamSCI infrastructure**, with the wsprsonde.hamsci.org domain and a staging

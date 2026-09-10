@@ -9,6 +9,8 @@ description = "Tracking, frequency coordination and monitoring for the HamSCI WS
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Nathaniel A. Frissell", email = "nathaniel.frissell@scranton.edu" }]
+license = "MIT"
+license-files = ["LICENSE"]
 
 # No runtime dependencies. The WsprDaemon client speaks HTTP to a ClickHouse
 # endpoint through urllib, and the station list is plain CSV, so the location

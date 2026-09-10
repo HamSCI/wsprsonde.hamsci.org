@@ -1,7 +1,7 @@
 # WSPRSonde Management System — Requirements for Discussion
 
-**Status:** Draft 0.4, for collaborator review (change log at the end)
-**Date:** 2026-09-03 (Drafts 0.2 and 0.3 were 2026-09-02 and 2026-09-03; Draft 0.1 was
+**Status:** Draft 0.6, for collaborator review (change log at the end)
+**Date:** 2026-09-10 (Drafts 0.2 to 0.5 were 2026-09-02 and 2026-09-03; Draft 0.1 was
 2026-08-13)
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
 **Review list:** Paul Elliott WB6CXC · Rob Robinett AI6VN · Gwyn Griffiths G3ZIL ·
@@ -19,7 +19,7 @@ Kristina Collins KD8OXT · Dave Larsen KV0S
 > *Requirement comment* or *Answer to an open question* template. Issues are how I track
 > what has been raised and what has been resolved. Email to the editor works too, but
 > anything that changes the document will be turned into an issue so the reasoning is on
-> the record. Comments are being collected against **Draft 0.4**; when a requirement is
+> the record. Comments are being collected against **Draft 0.6**; when a requirement is
 > changed as a result, the change log at the end will say which issue drove it.
 
 ---
@@ -43,7 +43,7 @@ Kristina Collins KD8OXT · Dave Larsen KV0S
 ## 1. Purpose and scope
 
 The HamSCI Personal Space Weather Station programme is deploying WSPRSonde transmitters —
-8-band, GPS-disciplined, ~1 W per band, transmitting WSPR and FST4W continuously — as the
+8-band, GPS-disciplined, ~1 W per band, transmitting WSPR or FST4W continuously — as the
 controlled transmit side of a distributed ionospheric sounding network. Roughly a dozen are
 on the air today; ten more are NSF-funded for deployment across North America, of which the
 first five shipped in August 2026.
@@ -90,24 +90,52 @@ times, and reconciling them is manual work nobody owns. Gwyn said as much on 202
 the table "does need updating, and a curator rather than me".
 
 **2.2 The assigned frequency and the transmitted frequency are not the same thing.**
-Measuring the on-air offset of every listed callsign against its assignment:
+Measuring the on-air offset and the transmitted mode of every listed callsign against its
+assignment. Offsets are medians over the three days to 2026-09-10 22:39 UTC, taken from
+`products/wsprsonde_locations.csv`; modes are from the 14 days to the same date:
 
-| Callsign | Assigned | Measured | Verdict |
-|---|---|---|---|
-| WB6CXC (Occidental) | 135 Hz | 135 Hz | ok |
-| KH2R | 36 Hz | 36 Hz | ok |
-| DP0GVN | 37 Hz | 37 Hz | ok |
-| WW0WWV | 50 Hz | 50 Hz | ok |
-| TI4JWC | 15 Hz | 16 Hz | ok |
-| **KD0EAG** | **80 Hz** | **131 Hz** | **mismatch** |
-| **VY0ERC** | 150 Hz | bands disagree by 115 Hz | **not measurable** |
-| N4RVE | 100 Hz | 100 Hz | ok, after a **nine-day outage** |
+| Callsign | Mode | `code` | Assigned | Measured | Verdict |
+|---|---|---|---|---|---|
+| WB6CXC (Occidental) | FST4W | 3 | 135 Hz | 135 Hz | ok |
+| **KH2R** | FST4W | 3 | **36 Hz** | **35 Hz** | **1 Hz below assignment** |
+| DP0GVN | WSPR | 1 | 37 Hz | 37 Hz | ok |
+| WW0WWV | WSPR | 1 | 50 Hz | 50 Hz | ok |
+| TI4JWC | WSPR | 1 | 15 Hz | 15 Hz | ok |
+| **KD0EAG** | FST4W | 3 | **80 Hz** | **128 Hz** | **mismatch** |
+| **VY0ERC** | FST4W | 3 | 150 Hz | too few reports | **not measurable** |
+| N4RVE | FST4W | 3 | 100 Hz | 100 Hz | ok, after a **nine-day outage** |
+| **W8GPS** | FST4W | 3 | **none on record** | 60 Hz | **unassigned** |
+| **ZD7GWM** | WSPR | 1 | 100 Hz nominal, **uncoordinated** | 100 Hz, 1 Hz on 28 MHz | **collides with N4RVE** |
+
+**Mode belongs in the table, and so does its code, because the two are different facts.**
+Gwyn Griffiths raised both
+([issue #6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6),
+[issue #9](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/9)): a unit transmits WSPR
+**or** FST4W, several have changed over their lives, and a query has to select on the numeric
+code rather than the mode name. The code column above is the one measured in `wspr.rx` and
+`wsprdaemon.spots` over the 14 days to 2026-09-10, where WSPR-2 reads `1`, FST4W-120 reads
+`3`, and `2` is 15-minute WSPR. Gwyn records WSPR as `2` in the `wsprsonde` PostgreSQL table
+and warns that the neighbouring `mode` column numbers the same thing differently again.
+**The number is therefore a property of the source, not of the mode**, which is why R1.3
+stores the mode by name and the code per source, and why nothing should compare two sources'
+codes to each other. Two registry rows were corrected in the same pass: TI4JWC and DP0GVN
+were recorded as FST4W and transmit WSPR.
 
 KD0EAG is explicable, because the replacement WS-8 configured at 80 Hz has not been deployed
 and the old BeaconBlaster is still running, and nothing in the current arrangement would have
-surfaced it. The BeaconBlaster has no dead-man
+surfaced it. Its bands still disagree by 23 Hz, which is what put the median at 128 Hz here
+and 131 Hz in Draft 0.3. The BeaconBlaster has no dead-man
 ([issue #3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3)), so completing that
 swap now settles a compliance question as well as a frequency one (§5.5, R4.3).
+
+KH2R transmits 1 Hz below its assignment. Gwyn Griffiths measured 35 Hz at W2NAF-2 on
+3.5 MHz ground wave and has used that value in the `wsprsonde` table
+([issue #10](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/10)); the spot record
+agrees, giving a median of 35 Hz on all seven measurable bands with 0 Hz spread, and W2NAF-2
+alone gives 35 Hz over 1,015 reports on 80 m. The coordinator's list of 2026-08-06 assigns
+1436 Hz. One hertz is at the resolution limit of a crowd-sourced median (R3.3), which is
+exactly why a ground-wave reference receiver is worth having, and why R2.1 records the
+assigned, configured and measured values separately instead of one number.
 
 N4RVE was off the air for nine days, from 2026-08-09 23:20 UTC to
 2026-08-18 23:20 UTC, and nobody was told; Paul Elliott reported the cause as a power supply
@@ -118,9 +146,21 @@ known and fixable cause, and no alert to anyone for nine days. VY0ERC is heard b
 receivers that its channel cannot be verified at all from the spot record, which is itself
 a finding worth having.
 
-**2.3 A collision is already on the books.** Paul flagged in the 2026-08-06 thread that
-KH2R and DP0GVN sit 1 Hz apart and one should be reassigned. There is no tool that would
-have caught that at assignment time, and no tool that would catch the next one.
+**2.3 Two collisions are on the books, and one of them is live.** Paul flagged in the
+2026-08-06 thread that KH2R and DP0GVN sit 1 Hz apart by assignment, 1436 and 1437 Hz, and
+that one should be reassigned; on the air they are now 2 Hz apart, because KH2R transmits at
+35 Hz (§2.2).
+
+The second is not a near miss. ZD7GWM, the privately owned St Helena sonde Gwyn identified
+([issue #7](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/7)), transmits on 100 Hz,
+which is N4RVE's assigned channel. Over the three days to 2026-09-10 the two measured the same
+100 Hz on five common bands, 3.5, 7, 14, 18 and 21 MHz, with a sixth, 24 MHz, one hertz apart.
+Two GPS-disciplined 1 W beacons are sharing a channel across most of HF. Nobody did anything wrong: ZD7GWM was never in a list the coordinator could check
+against, which is R2.7's case for registering non-HamSCI units and R2.3's case for checking
+an assignment against everything on the air rather than against our own roster.
+
+There is no tool that would have caught either at assignment time, and no tool that would
+catch the next one.
 
 **2.4 "Which of these is a WSPRSonde?" has no answer in the data.** Nathaniel asked this
 on 2026-07-31 and suggested a callsign suffix such as `-WS`. Two detection methods were
@@ -139,6 +179,16 @@ tested against `wspr.rx` on 2026-08-13:
   *heard* several bands in the same slot, so weakly-heard sondes — the polar sites
   especially — fall below the threshold. A hit is strong evidence; a miss is no evidence.
 
+**Two of those candidates now have answers, and a ninth station appeared after the scan.**
+ZD7GWM is a privately owned WSPRSonde on St Helena, confirmed by Gwyn Griffiths, who has
+added it to the `wsprsonde` table and holds the control operator's contact details
+([issue #7](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/7)). W8GPS is a WSPRSonde
+Gwyn lists that no scan here has ever reported, for a simple reason: it was first heard on
+2026-08-21, on four bands, and went to eight on 2026-08-29, both after the 2026-08-13 scan.
+It transmits FST4W on 60 Hz with 0 Hz spread across eight bands and has no assignment on
+record. A one-off scan is therefore worth about as much as a one-off frequency measurement,
+which is the case for running R3.6 on a schedule rather than by hand.
+
 **The suffix idea is closed.** Paul Elliott reports that neither the WSPRSonde nor the
 BeaconBlaster supports extended callsigns
 ([issue #2](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/2)), so a `-WS` marker
@@ -155,9 +205,11 @@ controlled transmitter array must be able to say which spots came from a control
 transmitter, and right now that is only possible by consulting a spreadsheet.
 
 **2.5 Nobody is watching the transmitters.** DP0GVN and VY0ERC are the two existing polar
-PSWS sites and the scientific justification for the McMurdo, South Pole and Palmer
-deployments. VY0ERC was heard by 70 receivers over 30 days, against 2,319 for KH2R. Whether
-that is propagation, an antenna problem or a sick transmitter, no one is being told.
+PSWS sites, and no new polar WSPRSonde deployments are currently planned, so those two are
+the network's whole polar transmit capability. They are also the hardest sites to service and
+the ones where a fault costs the most. VY0ERC was heard by 70 receivers over 30 days, against
+2,319 for KH2R. Whether that is propagation, an antenna problem or a sick transmitter, no one
+is being told.
 
 ---
 
@@ -241,6 +293,22 @@ favoured GitHub over the HamSCI web server for the underlying files, consistent 
 direction the PSWS instrument pages are already taking. **R4.1** The registry's canonical
 form should be a versioned text file in a Git repository, with the web application as a
 view and an editor over it — not a database whose history lives only in backups.
+
+**4.6 Gwyn's WSPRSonde Grafana dashboard**, at `wd10.wsprdaemon.org:3000`
+(`/d/dfagb9m7nn5s0f/wsprsonde-ch`), joins the `wsprsonde` table of §4.3 to the spot record
+and plots Doppler shift, derived signal level and clock metadata per transmitter
+([issue #8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8)). It reads with the
+shared read-only `wdread` account that WsprDaemon publishes on <https://wsprdaemon.org>; the
+password is public but is not transcribed here, so that this repository holds no credential
+string of any kind.
+
+**It is the strongest available argument for the registry's frequency record.** The Doppler
+plot works only because the transmit frequency is known to 1 mHz from the table rather than
+inferred from the spot, so R2.1's measured leg is a science product and not only a
+coordination check. Two consequences for this document: the system must keep feeding
+whatever the dashboard reads rather than diverging from it (R6.3), and the dashboard is the
+presentation layer for per-station status that R7.2 would otherwise have to build from
+nothing.
 
 ---
 
@@ -363,11 +431,11 @@ demonstrably stops the transmitter.
 
 **5.6 Jurisdiction.** Part 97 governs US stations only. The network already includes
 DP0GVN (German licence, Antarctica), VY0ERC (Canada, ISED), TI4JWC (Costa Rica) and VU24JD
-(India), and the polar expansion adds more. **R4.9** The control-operator module must be
-jurisdiction-aware: record each station's licensing administration, apply the US interlock
-rules to US stations, and do not assert compliance with rules that have not been checked
-for the others. Where a non-US administration's rules are unknown, the system should say so
-rather than defaulting to the FCC's.
+(India), so it already spans four licensing administrations. **R4.9** The control-operator
+module must be jurisdiction-aware: record each station's licensing administration, apply the
+US interlock rules to US stations, and do not assert compliance with rules that have not been
+checked for the others. Where a non-US administration's rules are unknown, the system should
+say so rather than defaulting to the FCC's.
 
 ---
 
@@ -387,11 +455,20 @@ rather than defaulting to the FCC's.
 - **R1.3** Each unit record must carry, at minimum: identifier, site, current callsign and
   callsign history, licensee, control operator(s), host, Maidenhead locator with its
   precision, hardware model (BeaconBlaster / WS-8 / successor), hardware serial number,
-  enclosure marking, firmware version, GPSDO type, antenna, modes, in-service and
-  out-of-service dates, funding source, and free-text notes.
+  enclosure marking, firmware version, GPSDO type, antenna, **transmit mode and its numeric
+  code**, in-service and out-of-service dates, funding source, and free-text notes.
+  A unit transmits WSPR **or** FST4W, several have changed mode over their lives, and a
+  query selects on the code rather than the name (Gwyn Griffiths,
+  [issue #9](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/9)). **Store the mode by
+  name and the code per source.** The number differs between sources for the same mode:
+  WSPR-2 is `1` in `wspr.rx` and `wsprdaemon.spots` and `2` in the `wsprsonde` table, and
+  that table's own `mode` column numbers it differently again (§2.2). A system that keeps
+  one code column will silently mis-select.
 - **R1.4** All history is **interval-valued**, following §4.3's schema. "Where was DP0GVN in
   March 2025" must be answerable, because a study spanning a reconfiguration otherwise
-  silently mixes two different stations.
+  silently mixes two different stations. Mode is one of the interval-valued fields: TI4JWC
+  has run both WSPR and FST4W, and a study that assumes one mode across a span gets the
+  wrong integration time.
 - **R1.5** Positions are Maidenhead locators, and **locator precision must be stored and
   displayed**. A 4-character locator is ~78 km across at 40° latitude. KH2R reports `FN21`
   to WSPRNet but is really at `FN21us`, 65 km away; VY0ERC has only a 4-character locator at
@@ -414,10 +491,18 @@ rather than defaulting to the FCC's.
   not: the **assigned** channel offset (Hz above the bottom of the 200 Hz WSPR/FST4W window),
   the **configured** frequency list read from the unit itself (R3.10), and the **measured**
   per-band transmit frequency to 1 mHz, following the existing `wsprsonde` table's resolution.
+  Carry the mode and its code alongside all three (R1.3), because §4.3's schema keys on them
+  and the dashboard of §4.6 selects on them.
 - **R2.2** Support the current allocation scheme: one offset applied to all of a unit's
   bands, allocated on a 10 Hz grid from 1450 Hz upward, with the pre-existing off-sequence
   assignments (TI4JWC 1415, KH2R 1436, DP0GVN 1437, WB6CXC 1535) recorded as exceptions
   rather than errors.
+  **Allow a per-band override.** ZD7GWM runs 100 Hz on seven bands and 0 Hz on 28 MHz
+  ([issue #7](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/7)), which this
+  repository's one-offset-per-unit model reports as an incoherent unit rather than as a
+  deliberate configuration. A unit whose bands legitimately differ must be recordable as
+  such, so that R2.5 compares each band against its own assignment and R3.3 raises a fault
+  only where the disagreement is unexplained.
 - **R2.3** **Refuse or warn on a colliding assignment** at allocation time, with a
   configurable guard band. Flag existing collisions: KH2R and DP0GVN are 1 Hz apart.
 - **R2.4** Check assignments against **non-sonde WSPR activity** in the same window, not
@@ -571,7 +656,9 @@ means of control in their pocket. See §5 for the regulatory reading behind this
 - **R6.2** MeshCentral, for agent reachability and remote configuration (§4.1).
 - **R6.3** Gwyn's `wsprsonde` PostgreSQL table: import as the frequency-history seed, then
   take over maintenance or keep it synchronised. Gwyn has asked for a curator; this is the
-  system that becomes one.
+  system that becomes one. The Grafana dashboard of §4.6 reads that table, so a divergence
+  breaks a working scientific product rather than only a metadata record; whatever the
+  system does with the table, the dashboard must keep resolving.
 - **R6.4** Publish a stable machine-readable feed for `polar-psws` and other consumers
   (R1.8).
 - **R6.5** Optional and low priority: WSPRNet directly. WsprDaemon already mirrors it and is
@@ -732,10 +819,20 @@ background. Three consequences:
    the hardware's own rather than one we invent.
 6. **MeshCentral as the identity provider** — is that acceptable and does it scale to
    non-HamSCI participants (R2.7)?
-7. **Four unlisted candidates** — DC7TO, ZD7GWM, N9VP, G0PKT. Does anyone recognise these as
-   WSPRSondes, BeaconBlasters, or something else? *(Paul, you would know who has hardware.)*
-8. **KH2R and DP0GVN are 1 Hz apart.** Which moves, and when? DP0GVN is in Antarctica and
-   reconfiguration there is not free.
+7. **Unlisted transmitters. Partly answered.** Of the four candidates the 2026-08-13 scan
+   returned, **ZD7GWM** is confirmed as a privately owned WSPRSonde on St Helena, now in the
+   `wsprsonde` table (Gwyn Griffiths,
+   [issue #7](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/7)). **DC7TO**, **N9VP**
+   and **G0PKT** are still unidentified. **W8GPS** has since been added by Gwyn
+   ([issue #6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6)) and came on the air
+   after the scan; its owner, hardware and funding are not on record here. Does anyone
+   recognise the remaining three, and who runs W8GPS? *(Paul, you would know who has
+   hardware.)*
+8. **Two channel conflicts.** KH2R and DP0GVN are assigned 1 Hz apart, and 2 Hz apart as
+   measured; which moves, and when? DP0GVN is in Antarctica and reconfiguration there is not
+   free. Separately, **ZD7GWM and N4RVE are both on 100 Hz** on six common bands (§2.3), which
+   needs a decision rather than a discussion: ZD7GWM is privately owned and outside the HamSCI
+   programme, so this is the first live test of R2.7.
 9. **Non-US jurisdictions** — does anyone know the equivalent Canadian (ISED), German (BNetzA),
    Costa Rican and Indian requirements for unattended beacon operation? *(Michael Hartje
    DK5HH, Pierre Fogal VE3KTB, John Clark TI4JWC.)*
@@ -793,12 +890,69 @@ Added 2026-09-03, for Drafts 0.3 and 0.4:
 - WSPR message types and compound-callsign forms, <https://dxplorer.net/wspr/msgtypes.html>
 - ARRL, *Link & Remote Control*, <http://www.arrl.org/link-remote-control>
 
+Added 2026-09-10, for Draft 0.6:
+
+- Reviewer comments, GitHub issues
+  [#5](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/5),
+  [#6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6),
+  [#7](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/7),
+  [#8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8),
+  [#9](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/9) and
+  [#10](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/10) (Gwyn Griffiths G3ZIL)
+- `wspr.rx`, WsprDaemon ClickHouse endpoint: live queries 2026-09-10 for per-band offsets and
+  per-callsign `code` values over 3 and 14 day windows, and for the first appearance of W8GPS
+- WSPRSonde Grafana dashboard, `wd10.wsprdaemon.org:3000/d/dfagb9m7nn5s0f/wsprsonde-ch`
+
 Drafted with AI assistance; see `ai/ai_usage_log.md`. All rule citations, measurements and
 attributions require human verification before this document is acted upon.
 
 ---
 
 ## Change log
+
+**Draft 0.6, 2026-09-10.** Gwyn Griffiths' review of Draft 0.4, issues #5 to #10, and the
+measurements it prompted. Changes from Draft 0.5:
+
+- **§1 corrected** (issue #5): a WSPRSonde transmits WSPR **or** FST4W, not both.
+- **§2.2 gains mode and code columns** (issues #6 and #9) and was re-measured on 2026-09-10.
+  The code number is a property of the source rather than of the mode: WSPR-2 reads `1` in
+  `wspr.rx` and `wsprdaemon.spots`, `2` in the `wsprsonde` table, and the neighbouring `mode`
+  column numbers it differently again, so R1.3 stores the mode by name and the code per
+  source. `data/wsprsonde_stations.csv` gains a `mode_code` column, and TI4JWC and DP0GVN
+  were corrected from FST4W to WSPR.
+- **§2.2 KH2R corrected to 35 Hz** (issue #10). Gwyn's ground-wave measurement at W2NAF-2 and
+  the spot record agree; the coordinator's list assigns 36 Hz, so the row now shows the
+  disagreement instead of hiding it.
+- **§2.3 rewritten** (issue #7): ZD7GWM and N4RVE are both transmitting on 100 Hz across six
+  common bands. That is a live co-channel collision between a HamSCI unit and a private one,
+  and the first real case for R2.7.
+- **R2.2 gains a per-band override** (issue #7). ZD7GWM's 0 Hz on 28 MHz against 100 Hz
+  elsewhere is a deliberate configuration, and this repository's one-offset-per-unit model
+  reports it as an incoherent unit.
+- **§2.4 and Q10.7** (issues #6 and #7): ZD7GWM is confirmed as a private WSPRSonde on
+  St Helena. W8GPS came on the air on 2026-08-21, after the scan that produced the candidate
+  list, which is the argument for running R3.6 on a schedule. Both are now in
+  `data/wsprsonde_stations.csv`.
+- **Added §4.6** (issue #8): Gwyn's WSPRSonde Grafana dashboard on `wd10`, which plots
+  Doppler shift from the known transmit frequency. R6.3 now requires that the dashboard keep
+  resolving through whatever the new system does to the table underneath it.
+- **R1.3, R1.4 and R2.1** carry transmit mode and its code, with mode interval-valued.
+- **Q10.8** now covers both channel conflicts.
+
+**Draft 0.5, 2026-09-03.** Two corrections from the PI, and the capstone proposal this document
+was written to support. Changes from Draft 0.4:
+
+- **§2.5 corrected.** Draft 0.4 said the two polar sites were "the scientific justification for
+  the McMurdo, South Pole and Palmer deployments," which read as planned WSPRSonde deployments.
+  No new polar WSPRSonde deployments are currently planned. DP0GVN and VY0ERC are the whole of
+  the polar transmit capability, which raises rather than lowers the value of monitoring them.
+- **§5.6 corrected** for the same reason: the jurisdiction requirement now rests on the four
+  administrations the network already spans.
+- The capstone project description is now written, at
+  [docs/project_description.md](project_description.md). It draws its evidence from §2, its
+  requirement table from §6, and its phasing from §9.1, and it is the document students and the
+  course instructor will read. This document stays the reference the requirements are cited
+  from.
 
 **Draft 0.4, 2026-09-03.** Paul Elliott's answers to the questions Draft 0.3 put back to him.
 Changes from Draft 0.3:

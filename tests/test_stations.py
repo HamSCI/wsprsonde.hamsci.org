@@ -50,10 +50,10 @@ def test_duplicate_station_id_rejected(tmp_path):
     header = ",".join(S.Station.__dataclass_fields__.keys() - {"activity", "observed_offset"})
     csv.write_text(
         "station_id,site_id,call,site_label,region,country,grid,hardware,gpsdo,"
-        "offset_assigned_hz,mode,antenna,date_in_service,date_out_service,funding,"
+        "offset_assigned_hz,mode,mode_code,antenna,date_in_service,date_out_service,funding,"
         "ok_to_list_public,record_status,notes\n"
-        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,,,,,,deployed,\n"
-        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,,,,,,deployed,\n",
+        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,1,,,,,,deployed,\n"
+        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,1,,,,,,deployed,\n",
     )
     assert header  # header composition is incidental; the duplicate is the point
     with pytest.raises(ValueError, match="duplicate station_id"):
@@ -64,9 +64,9 @@ def test_invalid_grid_rejected(tmp_path):
     csv = tmp_path / "bad.csv"
     csv.write_text(
         "station_id,site_id,call,site_label,region,country,grid,hardware,gpsdo,"
-        "offset_assigned_hz,mode,antenna,date_in_service,date_out_service,funding,"
+        "offset_assigned_hz,mode,mode_code,antenna,date_in_service,date_out_service,funding,"
         "ok_to_list_public,record_status,notes\n"
-        "A,A,W1AW,x,x,USA,ZZ99zz,WS-8,,50,WSPR,,,,,,deployed,\n",
+        "A,A,W1AW,x,x,USA,ZZ99zz,WS-8,,50,WSPR,1,,,,,,deployed,\n",
     )
     with pytest.raises(ValueError, match="invalid Maidenhead locator"):
         S.load(csv)
@@ -76,9 +76,9 @@ def test_unknown_record_status_rejected(tmp_path):
     csv = tmp_path / "status.csv"
     csv.write_text(
         "station_id,site_id,call,site_label,region,country,grid,hardware,gpsdo,"
-        "offset_assigned_hz,mode,antenna,date_in_service,date_out_service,funding,"
+        "offset_assigned_hz,mode,mode_code,antenna,date_in_service,date_out_service,funding,"
         "ok_to_list_public,record_status,notes\n"
-        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,,,,,,probably_fine,\n",
+        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,1,,,,,,probably_fine,\n",
     )
     with pytest.raises(ValueError, match="record_status"):
         S.load(csv)

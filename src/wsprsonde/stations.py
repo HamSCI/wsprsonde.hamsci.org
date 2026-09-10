@@ -76,6 +76,7 @@ class Station:
     gpsdo: str
     offset_assigned_hz: str
     mode: str
+    mode_code: str
     antenna: str
     date_in_service: str
     date_out_service: str

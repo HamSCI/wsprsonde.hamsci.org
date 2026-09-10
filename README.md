@@ -19,11 +19,23 @@ This repository holds two things:
 2. **[Requirements for a WSPRSonde management system](docs/requirements_wsprsonde_management_system.md)**
    — a draft for collaborator review covering registry, frequency coordination, monitoring, and
    control-operator positive control.
+3. **[A capstone project description](docs/project_description.md)** — the same system offered to
+   a University of Scranton Computer Science senior capstone team, written for students with no
+   amateur radio background.
+
+## The capstone project
+
+The management system is proposed as a two-semester **Computer Science senior capstone project**
+at The University of Scranton (Fall 2026 to Spring 2027), sponsored by Dr. Nathaniel A. Frissell,
+W2NAF, with the requirements reviewers as the customers. The project description presented to
+students is [docs/project_description.md](docs/project_description.md); it defines three success
+tiers, and the threshold tier's acceptance test is a replay: load the archived spot record and
+have the system reproduce this repository's own verification findings without help.
 
 ## Reviewing the requirements
 
-The requirements document is out for collaborator review (Draft 0.2, 2026-09-02) ahead of being
-handed to a University of Scranton Computer Science capstone team. To comment, **file an issue**,
+The requirements document is out for collaborator review (Draft 0.6, 2026-09-10) ahead of the
+capstone proposal being submitted. To comment, **file an issue**,
 one per point, using the *Requirement comment* or *Answer to an open question* template; cite the
 requirement by number (`R4.2`, `N3`, `§5.3`) or the question by number (`Q1`). Section 10 of the
 document lists the questions the editor most wants answered, and section 5 (the FCC Part 97
@@ -87,6 +99,10 @@ Positions are Maidenhead cell centres, not surveyed coordinates. A 4-character l
 78 km across at 40° latitude. KH2R reports `FN21` to WSPRNet but is really at `FN21us`, 65 km
 away; VY0ERC has only a 4-character locator at 80° N. `grid_precision` in the product says which
 you are looking at.
+
+## License
+
+MIT license; see [LICENSE](LICENSE).
 
 ## Acknowledgements
 

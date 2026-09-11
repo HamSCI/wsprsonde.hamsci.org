@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-09-11 14:11:02",
+  "generated_utc": "2026-09-11 18:14:07",
   "endpoint": "http://wd10.wsprdaemon.org/",
   "source_table": "wspr.rx",
   "curated_list": "data/wsprsonde_stations.csv",

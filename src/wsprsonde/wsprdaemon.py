@@ -72,11 +72,14 @@ BAND_BASE_HZ: dict[int, int] = {
 }
 
 
-#: Transmission mode by the ``code`` column of ``wspr.rx`` and
-#: ``wsprdaemon.spots``, for spots reported **on or after 2023-01-16**. Source:
-#: the WSPR/FST4W mapping table published at https://wspr.live/ (read
-#: 2026-09-11), confirmed against known-mode WSPRSondes over the 14 days to
-#: 2026-09-10.
+#: Transmission mode by the ``code`` column of ``wspr.rx``, for spots reported
+#: **on or after 2023-01-16**. This is WSPRNet's own encoding, and it is the
+#: one to measure mode with: it has been uniform since that date. Source: the
+#: WSPR/FST4W mapping table published at https://wspr.live/ (read 2026-09-11),
+#: confirmed against known-mode WSPRSondes month by month from 2024-07 to
+#: 2026-09 (WW0WWV always 1; WB6CXC, KH2R, N4RVE, KD0EAG always 3).
+#:
+#: It does **not** describe ``wsprdaemon.spots``; see :data:`MODE_BY_WD_MODE`.
 MODE_BY_CODE: dict[int, str] = {
     1: "WSPR",          # WSPR-2, the 2-minute mode
     2: "WSPR-15",
@@ -86,10 +89,20 @@ MODE_BY_CODE: dict[int, str] = {
     8: "FST4W-1800",
 }
 
-#: The same modes by the ``mode`` column of the WsprDaemon **PostgreSQL**
-#: tables, which is what Gwyn Griffiths' ``wsprsonde`` table carries
-#: (`issue #6 <https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6>`_).
-#: Same source as :data:`MODE_BY_CODE`.
+#: The same modes in WsprDaemon's own encoding: the ``mode`` column of the
+#: WsprDaemon **PostgreSQL** tables, which Gwyn Griffiths' ``wsprsonde`` table
+#: carries, **and the** ``code`` **column of** ``wsprdaemon.spots`` (Gwyn
+#: Griffiths, `issue #6
+#: <https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6>`_, confirmed
+#: 2026-09-11 on ``wd10``, ``wd1`` and ``wd2``: every WSPR-2 sonde reads 2).
+#: Same published source as :data:`MODE_BY_CODE`.
+#:
+#: ``wsprdaemon.spots.code`` has **not** carried this encoding consistently.
+#: WW0WWV, which ``wspr.rx`` shows as WSPR-2 throughout, reads 1 from 2024-07
+#: to 2025-04, 2 from 2025-05 to 2025-10, 1 again from 2025-11 to 2026-02 and 2
+#: from 2026-03 on (measured 2026-09-11 on ``wd10``; the cause was not
+#: established). Read it with this table only from
+#: :data:`WD_SPOTS_CODE_STABLE_DATE`, and take mode history from ``wspr.rx``.
 MODE_BY_WD_MODE: dict[int, str] = {
     2: "WSPR",          # WSPR-2
     15: "WSPR-15",
@@ -99,15 +112,22 @@ MODE_BY_WD_MODE: dict[int, str] = {
     31: "FST4W-1800",
 }
 
-#: **The two encodings agree on FST4W and disagree on WSPR**, which is what
-#: makes the trap subtle: a system that confuses them is correct on every FST4W
-#: station and wrong on every WSPR one, so it looks half right. Store the mode
-#: by name and translate per source; never compare two sources' numbers.
+#: **The two encodings agree on FST4W-120 and disagree on WSPR-2**, which is
+#: what makes the trap subtle: a system that confuses them is correct on every
+#: FST4W station and wrong on every WSPR one, so it looks half right. Store the
+#: mode by name and translate per source; never compare two sources' numbers.
 
-#: ``code`` before 2023-01-16 did not separate WSPR-2 from FST4W-120: both were
-#: reported as ``1``. Any mode history that reaches back past that date must come
-#: from the unit record or the curator's table, never from the spot archive.
+#: ``wspr.rx.code`` before 2023-01-16 did not separate WSPR-2 from FST4W-120:
+#: both were reported as ``1``. Any mode history that reaches back past that
+#: date must come from the unit record or the curator's table, never from the
+#: spot archive.
 CODE_MODE_SPLIT_DATE = "2023-01-16"
+
+#: First month in which ``wsprdaemon.spots.code`` has read consistently in the
+#: WsprDaemon encoding of :data:`MODE_BY_WD_MODE` for every known WSPRSonde.
+#: Earlier values flip between the two encodings (see that table's note), so a
+#: mode read from ``wsprdaemon.spots`` before this date is not evidence.
+WD_SPOTS_CODE_STABLE_DATE = "2026-03-01"
 
 
 class WsprDaemonError(RuntimeError):

@@ -1,7 +1,7 @@
 # WSPRSonde Management System — Requirements for Discussion
 
-**Status:** Draft 0.7, for collaborator review (change log at the end)
-**Date:** 2026-09-11 (Drafts 0.2 to 0.6 were 2026-09-02 to 2026-09-10; Draft 0.1 was
+**Status:** Draft 0.8, for collaborator review (change log at the end)
+**Date:** 2026-09-11 (Drafts 0.2 to 0.7 were 2026-09-02 to 2026-09-11; Draft 0.1 was
 2026-08-13)
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
 **Review list:** Paul Elliott WB6CXC · Rob Robinett AI6VN · Gwyn Griffiths G3ZIL ·
@@ -19,7 +19,7 @@ Kristina Collins KD8OXT · Dave Larsen KV0S
 > *Requirement comment* or *Answer to an open question* template. Issues are how I track
 > what has been raised and what has been resolved. Email to the editor works too, but
 > anything that changes the document will be turned into an issue so the reasoning is on
-> the record. Comments are being collected against **Draft 0.7**; when a requirement is
+> the record. Comments are being collected against **Draft 0.8**; when a requirement is
 > changed as a result, the change log at the end will say which issue drove it.
 
 ---
@@ -91,51 +91,83 @@ the table "does need updating, and a curator rather than me".
 
 **2.2 The assigned frequency and the transmitted frequency are not the same thing.**
 Measuring the on-air offset and the transmitted mode of every listed callsign against its
-assignment. Offsets are medians over the three days to 2026-09-11 14:11 UTC, taken from
-`products/wsprsonde_locations.csv`; modes are from the 14 days to 2026-09-10:
+assignment. Offsets are medians over the three days to 2026-09-11 18:14 UTC, taken from
+`products/wsprsonde_locations.csv`; modes are from the 14 days to 2026-09-10, and the two
+`code` columns are the same mode as numbered by `wspr.rx` and by `wsprdaemon.spots` over the
+three days to 2026-09-11:
 
-| Callsign | Mode | `code` | Assigned | Measured | Verdict |
-|---|---|---|---|---|---|
-| WB6CXC (Occidental) | FST4W | 3 | 135 Hz | 135 Hz | ok |
-| **KH2R** | FST4W | 3 | **36 Hz** | **35 Hz** | **1 Hz below assignment** |
-| DP0GVN | WSPR | 1 | 37 Hz | 37 Hz | ok |
-| WW0WWV | WSPR | 1 | 50 Hz | 50 Hz | ok |
-| TI4JWC | WSPR | 1 | 15 Hz | 16 Hz | ok |
-| **KD0EAG** | FST4W | 3 | **80 Hz** | **128 Hz** | **mismatch** |
-| **VY0ERC** | FST4W | 3 | 150 Hz | withheld | **not measurable** |
-| N4RVE | FST4W | 3 | 100 Hz | 100 Hz | ok, after a **nine-day outage** |
-| **W8GPS** | FST4W | 3 | **none on record** | 60 Hz | **unassigned** |
-| **ZD7GWM** | WSPR | 1 | 100 Hz nominal, **uncoordinated** | 100 Hz, 1 Hz on 28 MHz | **collides with N4RVE** |
+| Callsign | Mode | `code`, `wspr.rx` | `code`, `wsprdaemon.spots` | Assigned | Measured | Verdict |
+|---|---|---|---|---|---|---|
+| WB6CXC (Occidental) | FST4W | 3 | 3 | 135 Hz | 135 Hz | ok |
+| **KH2R** | FST4W | 3 | 3 | **36 Hz** | **35 Hz** | **1 Hz below assignment** |
+| DP0GVN | WSPR | 1 | 2 | 37 Hz | 37 Hz | ok |
+| WW0WWV | WSPR | 1 | 2 | 50 Hz | 50 Hz | ok |
+| TI4JWC | WSPR | 1 | 2 | 15 Hz | 16 Hz | ok |
+| **KD0EAG** | FST4W | 3 | 3 | **80 Hz** | **128 Hz** | **mismatch** |
+| **VY0ERC** | FST4W | 3 | (none heard) | 150 Hz | withheld | **not measurable** |
+| N4RVE | FST4W | 3 | 3 | 100 Hz | 100 Hz | ok, after a **nine-day outage** |
+| **W8GPS** | FST4W | 3 | 3 | **none on record** | 60 Hz | **unassigned** |
+| **ZD7GWM** | WSPR | 1 | 2 | 100 Hz nominal, **uncoordinated** | 100 Hz, 1 Hz on 28 MHz | **collides with N4RVE** |
 
 **Mode belongs in the table, and so does its code, because the two are different facts.**
 Gwyn Griffiths raised both
 ([issue #6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6),
 [issue #9](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/9)): a unit transmits WSPR
 **or** FST4W, several have changed over their lives, and a query has to select on a number
-rather than on the mode name. Which number depends on which table is being queried, and the
-two in play here disagree. WsprDaemon publishes the mapping at <https://wspr.live/>:
+rather than on the mode name. Which number depends on which table is being queried, because
+two encodings are in use. WSPRNet's encoding is what `wspr.rx` carries. WsprDaemon's own
+encoding is what its PostgreSQL tables carry in a column named `mode`. The ClickHouse table
+`wsprdaemon.spots` carries that same encoding in a column named `code` (Gwyn Griffiths,
+issue #6, confirmed on `wd10`, `wd1` and `wd2` on 2026-09-11). WsprDaemon publishes the
+mapping at <https://wspr.live/>:
 
-| Mode | `code` in `wspr.rx` | `mode` in the WsprDaemon PostgreSQL tables |
-|---|---|---|
-| WSPR-2 | 1 | 2 |
-| WSPR-15 | 2 | 15 |
-| FST4W-120 | 3 | 3 |
-| FST4W-300 | 4 | 6 |
+| Mode | `wspr.rx` `code`, from 2023-01-16 | `wspr.rx` `code`, before 2023-01-16 | `wsprdaemon.spots` `code`, and WsprDaemon PostgreSQL `mode` |
+|---|---|---|---|
+| WSPR-2 | 1 | 1 | 2 |
+| WSPR-15 | 2 | 2 | 15 |
+| FST4W-120 | 3 | 1 | 3 |
+| FST4W-300 | 4 | 4 | 6 |
+| FST4W-900 | 5 | 1 | 16 |
+| FST4W-1800 | 8 | 8 | 31 |
 
-**The two encodings agree on FST4W and disagree on WSPR**, and that is what makes the trap
-subtle: a system that confuses them is right about every FST4W station and wrong about every
-WSPR one, so it looks half correct. The `wsprsonde` table carries the PostgreSQL convention,
-where WSPR is `2` (Gwyn Griffiths, issue #6). R1.3 therefore stores the mode by name and each
-source's number beside it, and `data/wsprsonde_stations.csv` carries both columns so the
-disagreement is visible in the data rather than buried in a query.
+**The two encodings agree on FST4W-120 and disagree on WSPR-2**, and that is what makes the
+trap subtle: a system that confuses them is right about every FST4W station and wrong about
+every WSPR one, so it looks half correct. This document fell into it twice. Drafts 0.6 and
+0.7 said WSPR-2 reads `1` in `wsprdaemon.spots`; that was the `wspr.rx` value carried over
+without being measured, and Gwyn Griffiths' query on 2026-09-11 showed the table reads `2`.
+R1.3 therefore stores the mode by name and each source's number beside it, and
+`data/wsprsonde_stations.csv` carries both numbers so the disagreement is visible in the data
+rather than buried in a query.
 
-**One historical limit belongs with it.** Before 2023-01-16, `code` did not separate WSPR-2
-from FST4W-120: both were reported as `1`. Mode history reaching back past that date has to
-come from the unit record or the curator's table, never from the spot archive, which is a
-constraint on R1.4 rather than a preference.
+**Which table to measure mode from.** `wspr.rx` is the one, because its `code` has been
+uniform since 2023-01-16: month by month from July 2024 to September 2026, WW0WWV reads `1`
+throughout and the five FST4W sondes read `3` throughout. `wsprdaemon.spots` has switched
+encoding at least three times over the same span: WW0WWV reads `1` from July 2024 to April
+2025, `2` from May to October 2025, `1` again from November 2025 to February 2026, and `2`
+from March 2026 on, with ZD7GWM and DP0GVN following the same pattern. The cause was not
+established; the switches may line up with WsprDaemon client releases or with the move of the
+spots table from TimescaleDB to ClickHouse, which is a question for Gwyn and Rob. Until it is,
+only readings from `wsprdaemon.spots` dated March 2026 or later count as evidence of mode.
 
-Two registry rows were corrected in the same pass: TI4JWC and DP0GVN were recorded as FST4W
-and transmit WSPR.
+**One historical limit belongs with it.** Before 2023-01-16, `wspr.rx` `code` did not separate
+WSPR-2 from FST4W-120: both were reported as `1`. Mode history reaching back past that date
+has to come from the unit record or the curator's table, never from the spot archive, which is
+a constraint on R1.4 rather than a preference.
+
+**TI4JWC changed mode in July 2026, and the record shows why mode has to be interval-valued.**
+In `wspr.rx` it reads `3` (FST4W) in every month from July 2024 to June 2026, both codes in
+July 2026, and `1` (WSPR) alone from August 2026. The G3ZIL metadata, which lists it as FST4W,
+and Gwyn's list in issue #6, which lists it as WSPR, were each right on the day they were
+written. Draft 0.6 recorded the change as a correction to the registry; it was a change of
+state, and the registry now records both intervals.
+
+DP0GVN's record raises a different question. In `wspr.rx` it reads `1` in every month, and it
+also reads `3` in substantial numbers from January to September 2025 and from December 2025 to
+February 2026 (in March 2025, 110,072 spots against 107,524), with the last `3` at 2026-02-07
+23:36 UTC. A WSPRSonde transmits one mode, so
+either a second transmitter signs DP0GVN or the unit was reconfigured band by band. The per-band
+breakdown that would settle it had not returned from `db1` at the time of writing, and the
+question is put to Gwyn in issue #6.
 
 KD0EAG is explicable, because the replacement WS-8 configured at 80 Hz has not been deployed
 and the old BeaconBlaster is still running, and nothing in the current arrangement would have
@@ -499,18 +531,21 @@ say so rather than defaulting to the FCC's.
   A unit transmits WSPR **or** FST4W, several have changed mode over their lives, and a
   query selects on a number rather than on the name (Gwyn Griffiths,
   [issue #9](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/9)). **Store the mode by
-  name and each source's number beside it.** WSPR-2 is `1` in `wspr.rx` and `wsprdaemon.spots`
-  and `2` in the WsprDaemon PostgreSQL tables, while FST4W-120 is `3` in both (§2.2). A system
-  that keeps a single code column is right about its FST4W stations and wrong about its WSPR
-  ones, which is the hardest kind of wrong to notice.
+  name and each source's number beside it.** WSPR-2 is `1` in `wspr.rx` and `2` in
+  `wsprdaemon.spots` and the WsprDaemon PostgreSQL tables, while FST4W-120 is `3` in all of
+  them (§2.2). A system that keeps a single code column is right about its FST4W stations and
+  wrong about its WSPR ones, which is the hardest kind of wrong to notice.
 - **R1.4** All history is **interval-valued**, following §4.3's schema. "Where was DP0GVN in
   March 2025" must be answerable, because a study spanning a reconfiguration otherwise
   silently mixes two different stations. Mode is one of the interval-valued fields: TI4JWC
   has run both WSPR and FST4W, and a study that assumes one mode across a span gets the
-  wrong integration time. **Mode history before 2023-01-16 cannot be recovered from the spot
-  archive**, because `code` reported WSPR-2 and FST4W-120 alike as `1` until that date (§2.2).
-  For anything earlier the registry and the curator's table are the only sources, which is an
-  argument for importing Gwyn's history rather than re-deriving it.
+  wrong integration time: it ran FST4W from at least July 2024 and WSPR from July 2026 (§2.2).
+  Measured mode history comes from `wspr.rx`, whose `code` has been uniform since 2023-01-16;
+  `wsprdaemon.spots` has switched encoding at least three times since July 2024 and is usable
+  for this only from March 2026 (§2.2). **Mode history before 2023-01-16 cannot be recovered
+  from the spot archive at all**, because `wspr.rx` reported WSPR-2 and FST4W-120 alike as `1`
+  until that date. For anything earlier the registry and the curator's table are the only
+  sources, which is an argument for importing Gwyn's history rather than re-deriving it.
 - **R1.5** Positions are Maidenhead locators, and **locator precision must be stored and
   displayed**. A 4-character locator is ~78 km across at 40° latitude. KH2R reports `FN21`
   to WSPRNet but is really at `FN21us`, 65 km away; VY0ERC has only a 4-character locator at
@@ -960,12 +995,42 @@ Added 2026-09-11, for Draft 0.7:
   [#8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8) (the co-channel dashboard)
 - WSPR/FST4W mode and code mapping table, <https://wspr.live/>, read 2026-09-11
 
+Added 2026-09-11, for Draft 0.8:
+
+- Gwyn Griffiths' comment of 2026-09-11 16:47 UTC in issue
+  [#6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6): `wsprdaemon.spots` reads
+  `code = 2` for TI4JWC, and his proposal to renumber the `wsprsonde` table's `code` to match
+- `wsprdaemon.spots` on `wd10`, `wd1` and `wd2`, and `wspr.rx` on `db1.wspr.live`: live
+  queries 2026-09-11 for per-callsign `code` over the three days to 2026-09-11 and month by
+  month from July 2024 for WW0WWV, TI4JWC, DP0GVN, ZD7GWM, KD0EAG and WB6CXC
+
 Drafted with AI assistance; see `ai/ai_usage_log.md`. All rule citations, measurements and
 attributions require human verification before this document is acted upon.
 
 ---
 
 ## Change log
+
+**Draft 0.8, 2026-09-11.** Gwyn Griffiths' third answer in issue #6, which corrects this
+document a second time, and what re-measuring on his finding turned up. Changes from Draft 0.7:
+
+- **§2.2 and R1.3: `wsprdaemon.spots` carries WsprDaemon's encoding, so WSPR-2 reads `2`
+  there** (issue #6). Drafts 0.6 and 0.7 said `1`, which was the `wspr.rx` value carried over
+  without being measured. Gwyn's query showed `2`, and it is `2` on all three mirrors. The §2.2
+  measurement table now carries both tables' numbers side by side, and the mapping table is
+  extended to the six modes and the pre-2023 column that R1.4's limit rests on.
+- **§2.2 and R1.4: measured mode comes from `wspr.rx`, and from `wsprdaemon.spots` only from
+  March 2026.** Reading the two tables back to July 2024 for the known sondes showed `wspr.rx`
+  uniform and `wsprdaemon.spots` switching encoding at least three times (WW0WWV: `1`, `2`, `1`,
+  `2`). The cause is open with Gwyn and Rob.
+- **§2.2 and R1.4: TI4JWC changed from FST4W to WSPR in July 2026.** Draft 0.6 had recorded
+  this as a registry correction. The G3ZIL metadata (FST4W) and Gwyn's issue #6 list (WSPR) were
+  each right when written, and `data/wsprsonde_stations.csv` now records both intervals in the
+  TI4JWC row.
+- `src/wsprsonde/wsprdaemon.py`: `MODE_BY_CODE` is now documented as `wspr.rx` only,
+  `MODE_BY_WD_MODE` as covering `wsprdaemon.spots` `code` as well, and
+  `WD_SPOTS_CODE_STABLE_DATE = "2026-03-01"` records the boundary. No query in the prototype
+  reads `code`, so the product is unaffected.
 
 **Draft 0.7, 2026-09-11.** Gwyn Griffiths' answers to the questions Draft 0.6 put back to him,
 and a correction those answers forced. Changes from Draft 0.6:

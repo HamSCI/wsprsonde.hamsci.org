@@ -34,7 +34,7 @@ have the system reproduce this repository's own verification findings without he
 
 ## Reviewing the requirements
 
-The requirements document is out for collaborator review (Draft 0.6, 2026-09-10) ahead of the
+The requirements document is out for collaborator review (Draft 0.8, 2026-09-11) ahead of the
 capstone proposal being submitted. To comment, **file an issue**,
 one per point, using the *Requirement comment* or *Answer to an open question* template; cite the
 requirement by number (`R4.2`, `N3`, `§5.3`) or the question by number (`Q1`). Section 10 of the

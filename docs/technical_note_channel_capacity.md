@@ -3,7 +3,7 @@
 **Status:** Technical Note 1, version 1.0
 **Date:** 2026-09-11
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
-**Relates to:** [requirements](requirements_wsprsonde_management_system.md) Draft 0.7, R2.2,
+**Relates to:** [requirements](requirements_wsprsonde_management_system.md) Draft 0.8, R2.2,
 R2.3, R2.4, §4.6 and open question 10.8
 
 > **This is a working note, not a requirement.** It answers one question that came up while

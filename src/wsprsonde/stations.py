@@ -54,6 +54,23 @@ OFFSET_TOLERANCE_HZ = 2
 #: ~23 Hz a BeaconBlaster typically shows -- is not hidden by the verdict.
 OFFSET_INCOHERENT_HZ = 50
 
+#: Bands that must carry a usable per-band median before a single offset is
+#: reported at all.
+#:
+#: The spread test above cannot fire on a thin measurement: one surviving band
+#: has a spread of 0 Hz by construction, and two cannot outvote each other, so
+#: a weakly-heard station produces a confident number from almost no evidence.
+#: VY0ERC does exactly this. On 2026-09-10 seven of its bands fell below the
+#: twenty-report floor, the eighth read 50 Hz, and the station was reported as
+#: transmitting 100 Hz away from its assignment -- a fault that would have sent
+#: somebody to the Arctic. Three bands is the least that can show a coherent
+#: channel rather than one lucky band.
+#:
+#: Below this, the offset is withheld and the verdict is ``not measurable``,
+#: which is what R3.3 of the requirements asks for: "not measurable" rather than
+#: "wrong frequency".
+OFFSET_MIN_BANDS = 3
+
 
 @dataclass
 class Station:
@@ -76,7 +93,8 @@ class Station:
     gpsdo: str
     offset_assigned_hz: str
     mode: str
-    mode_code: str
+    mode_code_wsprrx: str
+    mode_code_wd: str
     antenna: str
     date_in_service: str
     date_out_service: str
@@ -130,20 +148,44 @@ class Station:
     _age_days: float | None = None
 
     @property
+    def offset_measurable(self) -> bool:
+        """Whether enough bands were heard to state a single offset at all.
+
+        See :data:`OFFSET_MIN_BANDS` for why a thin measurement is worse than
+        no measurement.
+
+        Examples
+        --------
+        >>> s = Station(*[""] * 20)
+        >>> s.observed_offset = {"per_band": {3: 50}, "offset_hz": 50, "spread_hz": 0}
+        >>> s.offset_measurable
+        False
+        >>> s.observed_offset = {"per_band": {3: 50, 7: 50, 14: 51},
+        ...                     "offset_hz": 50, "spread_hz": 1}
+        >>> s.offset_measurable
+        True
+        """
+        return len(self.observed_offset.get("per_band", {})) >= OFFSET_MIN_BANDS
+
+    @property
     def offset_check(self) -> str:
         """Verdict on the measured offset: ``ok``, ``MISMATCH``, ``incoherent`` or ``""``.
 
         Three outcomes, because two different things can go wrong and they need
         different people to act:
 
+        ``not measurable``
+            Fewer than :data:`OFFSET_MIN_BANDS` bands carried enough reception
+            reports to measure, so there is no measurement to compare. VY0ERC
+            is usually in this state. The finding is "not heard well enough to
+            measure", and reporting it as a frequency fault would send somebody
+            chasing a problem that is not there.
         ``incoherent``
-            The station's bands disagree by :data:`OFFSET_INCOHERENT_HZ` or
-            more, so there is no single offset to compare against. VY0ERC is in
-            this state -- heard on a handful of bands by a handful of receivers,
-            per-band medians scattered over 100 Hz. The finding is "not heard
-            well enough to measure", not "transmitting on the wrong frequency",
-            and reporting it as the latter would send somebody chasing a fault
-            that is not there.
+            Enough bands were measured and they disagree by
+            :data:`OFFSET_INCOHERENT_HZ` or more, so there is no single offset
+            to compare against. ZD7GWM reads this way because it runs 100 Hz on
+            seven bands and 0 Hz on 28 MHz, which is a deliberate configuration
+            the one-offset-per-unit model cannot express.
         ``MISMATCH``
             A coherent offset was measured and it is not the assigned one. This
             is a real coordination problem. KD0EAG shows it: assigned 80 Hz in
@@ -162,6 +204,8 @@ class Station:
         observed = self.observed_offset.get("offset_hz")
         if not assigned or observed is None:
             return ""
+        if not self.offset_measurable:
+            return "not measurable"
         if self.observed_offset.get("spread_hz", 0) >= OFFSET_INCOHERENT_HZ:
             return "incoherent"
         return "ok" if abs(int(assigned) - int(observed)) <= OFFSET_TOLERANCE_HZ else "MISMATCH"

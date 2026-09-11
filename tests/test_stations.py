@@ -50,10 +50,11 @@ def test_duplicate_station_id_rejected(tmp_path):
     header = ",".join(S.Station.__dataclass_fields__.keys() - {"activity", "observed_offset"})
     csv.write_text(
         "station_id,site_id,call,site_label,region,country,grid,hardware,gpsdo,"
-        "offset_assigned_hz,mode,mode_code,antenna,date_in_service,date_out_service,funding,"
+        "offset_assigned_hz,mode,mode_code_wsprrx,mode_code_wd,antenna,date_in_service,"
+        "date_out_service,funding,"
         "ok_to_list_public,record_status,notes\n"
-        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,1,,,,,,deployed,\n"
-        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,1,,,,,,deployed,\n",
+        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,1,2,,,,,,deployed,\n"
+        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,1,2,,,,,,deployed,\n",
     )
     assert header  # header composition is incidental; the duplicate is the point
     with pytest.raises(ValueError, match="duplicate station_id"):
@@ -64,9 +65,10 @@ def test_invalid_grid_rejected(tmp_path):
     csv = tmp_path / "bad.csv"
     csv.write_text(
         "station_id,site_id,call,site_label,region,country,grid,hardware,gpsdo,"
-        "offset_assigned_hz,mode,mode_code,antenna,date_in_service,date_out_service,funding,"
+        "offset_assigned_hz,mode,mode_code_wsprrx,mode_code_wd,antenna,date_in_service,"
+        "date_out_service,funding,"
         "ok_to_list_public,record_status,notes\n"
-        "A,A,W1AW,x,x,USA,ZZ99zz,WS-8,,50,WSPR,1,,,,,,deployed,\n",
+        "A,A,W1AW,x,x,USA,ZZ99zz,WS-8,,50,WSPR,1,2,,,,,,deployed,\n",
     )
     with pytest.raises(ValueError, match="invalid Maidenhead locator"):
         S.load(csv)
@@ -76,9 +78,10 @@ def test_unknown_record_status_rejected(tmp_path):
     csv = tmp_path / "status.csv"
     csv.write_text(
         "station_id,site_id,call,site_label,region,country,grid,hardware,gpsdo,"
-        "offset_assigned_hz,mode,mode_code,antenna,date_in_service,date_out_service,funding,"
+        "offset_assigned_hz,mode,mode_code_wsprrx,mode_code_wd,antenna,date_in_service,"
+        "date_out_service,funding,"
         "ok_to_list_public,record_status,notes\n"
-        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,1,,,,,,probably_fine,\n",
+        "A,A,W1AW,x,x,USA,FN31,WS-8,,50,WSPR,1,2,,,,,,probably_fine,\n",
     )
     with pytest.raises(ValueError, match="record_status"):
         S.load(csv)
@@ -113,21 +116,29 @@ def test_silent_when_nothing_heard(station_list):
 
 
 @pytest.mark.parametrize(
-    "assigned, observed, spread, expected",
+    "assigned, observed, spread, bands, expected",
     [
-        ("50", 50, 1, "ok"),
-        ("50", 52, 1, "ok"),           # inside the 2 Hz tolerance
-        ("50", 53, 1, "MISMATCH"),     # outside it
-        ("80", 131, 23, "MISMATCH"),   # KD0EAG: real, coherent, wrong
-        ("150", 165, 115, "incoherent"),  # VY0ERC: bands disagree, unmeasurable
-        ("", 50, 1, ""),               # no assignment on record
-        ("50", None, 0, ""),           # nothing heard
+        ("50", 50, 1, 8, "ok"),
+        ("50", 52, 1, 8, "ok"),            # inside the 2 Hz tolerance
+        ("50", 53, 1, 8, "MISMATCH"),      # outside it
+        ("80", 131, 23, 6, "MISMATCH"),    # KD0EAG: real, coherent, wrong
+        ("100", 100, 100, 7, "incoherent"),  # ZD7GWM: 0 Hz on 28 MHz, 100 Hz elsewhere
+        ("150", 50, 0, 1, "not measurable"),  # VY0ERC: one lucky band, no measurement
+        ("150", 50, 0, 2, "not measurable"),  # two bands cannot outvote each other
+        ("", 50, 1, 8, ""),                # no assignment on record
+        ("50", None, 0, 0, ""),            # nothing heard
     ],
 )
-def test_offset_check(station_list, assigned, observed, spread, expected):
+def test_offset_check(station_list, assigned, observed, spread, bands, expected):
     station = station_list[0]
     station.offset_assigned_hz = assigned
     station.observed_offset = (
-        {} if observed is None else {"offset_hz": observed, "spread_hz": spread}
+        {}
+        if observed is None
+        else {
+            "offset_hz": observed,
+            "spread_hz": spread,
+            "per_band": {b: observed for b in range(bands)},
+        }
     )
     assert station.offset_check == expected

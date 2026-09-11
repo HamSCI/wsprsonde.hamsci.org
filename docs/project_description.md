@@ -107,7 +107,7 @@ them is manual work that nobody owns. G3ZIL has said the table "does need updati
 rather than me."
 
 **The assigned frequency and the transmitted frequency are not the same thing.** Measuring the
-on-air channel offset of every listed station against its assignment, on 10 September 2026,
+on-air channel offset of every listed station against its assignment, on 11 September 2026,
 produced this:
 
 | Callsign | Assigned | Measured | Verdict |
@@ -116,9 +116,9 @@ produced this:
 | **KH2R** | **36 Hz** | **35 Hz** | **1 Hz below assignment** |
 | DP0GVN | 37 Hz | 37 Hz | ok |
 | WW0WWV | 50 Hz | 50 Hz | ok |
-| TI4JWC | 15 Hz | 15 Hz | ok |
+| TI4JWC | 15 Hz | 16 Hz | ok |
 | **KD0EAG** | **80 Hz** | **128 Hz** | **mismatch** |
-| **VY0ERC** | 150 Hz | too few reports | **not measurable** |
+| **VY0ERC** | 150 Hz | withheld | **not measurable** |
 | N4RVE | 100 Hz | 100 Hz | ok, after a nine-day outage |
 | **W8GPS** | **none on record** | 60 Hz | **unassigned** |
 | **ZD7GWM** | 100 Hz nominal, **uncoordinated** | 100 Hz | **collides with N4RVE** |

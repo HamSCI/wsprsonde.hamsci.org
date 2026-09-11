@@ -45,7 +45,7 @@ PRODUCTS_DIR = REPO_ROOT / "products"
 OUTPUT_COLUMNS = [
     "station_id", "site_id", "call", "site_label", "region", "country",
     "grid", "grid_precision", "lat", "lon",
-    "hardware", "gpsdo", "mode", "mode_code", "antenna",
+    "hardware", "gpsdo", "mode", "mode_code_wsprrx", "mode_code_wd", "antenna",
     "offset_assigned_hz", "offset_observed_hz", "offset_spread_hz", "offset_check",
     "record_status", "on_air_status", "last_spot_utc", "days_since_last_spot",
     "spots_in_window", "reporters_in_window", "bands_in_window", "power_dbm_reported",
@@ -79,11 +79,18 @@ def build_rows(stations: list[S.Station]) -> list[dict]:
             "hardware": st.hardware,
             "gpsdo": st.gpsdo,
             "mode": st.mode,
-            "mode_code": st.mode_code,
+            "mode_code_wsprrx": st.mode_code_wsprrx,
+            "mode_code_wd": st.mode_code_wd,
             "antenna": st.antenna,
             "offset_assigned_hz": st.offset_assigned_hz,
-            "offset_observed_hz": st.observed_offset.get("offset_hz", ""),
-            "offset_spread_hz": st.observed_offset.get("spread_hz", ""),
+            # Withheld below OFFSET_MIN_BANDS: a one-band median is a number,
+            # not a measurement, and publishing it invents a fault (R3.3).
+            "offset_observed_hz": (
+                st.observed_offset.get("offset_hz", "") if st.offset_measurable else ""
+            ),
+            "offset_spread_hz": (
+                st.observed_offset.get("spread_hz", "") if st.offset_measurable else ""
+            ),
             "offset_check": st.offset_check,
             "record_status": st.record_status,
             "on_air_status": st.on_air_status,
@@ -157,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
         "positioned": sum(bool(r["lat"]) for r in rows),
         "offset_mismatch": sum(r["offset_check"] == "MISMATCH" for r in rows),
         "offset_incoherent": sum(r["offset_check"] == "incoherent" for r in rows),
+        "offset_not_measurable": sum(r["offset_check"] == "not measurable" for r in rows),
         "candidates_unlisted": len(candidates),
     }
     manifest = {
@@ -169,6 +177,7 @@ def main(argv: list[str] | None = None) -> int:
             "active_within_days": S.ACTIVE_WITHIN_DAYS,
             "offset_match_tolerance_hz": S.OFFSET_TOLERANCE_HZ,
             "offset_incoherent_hz": S.OFFSET_INCOHERENT_HZ,
+            "offset_min_bands": S.OFFSET_MIN_BANDS,
         },
         "counts": counts,
         "caveats": [

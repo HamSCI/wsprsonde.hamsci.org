@@ -1,7 +1,7 @@
 # WSPRSonde Management System — Requirements for Discussion
 
-**Status:** Draft 0.6, for collaborator review (change log at the end)
-**Date:** 2026-09-10 (Drafts 0.2 to 0.5 were 2026-09-02 and 2026-09-03; Draft 0.1 was
+**Status:** Draft 0.7, for collaborator review (change log at the end)
+**Date:** 2026-09-11 (Drafts 0.2 to 0.6 were 2026-09-02 to 2026-09-10; Draft 0.1 was
 2026-08-13)
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
 **Review list:** Paul Elliott WB6CXC · Rob Robinett AI6VN · Gwyn Griffiths G3ZIL ·
@@ -19,7 +19,7 @@ Kristina Collins KD8OXT · Dave Larsen KV0S
 > *Requirement comment* or *Answer to an open question* template. Issues are how I track
 > what has been raised and what has been resolved. Email to the editor works too, but
 > anything that changes the document will be turned into an issue so the reasoning is on
-> the record. Comments are being collected against **Draft 0.6**; when a requirement is
+> the record. Comments are being collected against **Draft 0.7**; when a requirement is
 > changed as a result, the change log at the end will say which issue drove it.
 
 ---
@@ -91,8 +91,8 @@ the table "does need updating, and a curator rather than me".
 
 **2.2 The assigned frequency and the transmitted frequency are not the same thing.**
 Measuring the on-air offset and the transmitted mode of every listed callsign against its
-assignment. Offsets are medians over the three days to 2026-09-10 22:39 UTC, taken from
-`products/wsprsonde_locations.csv`; modes are from the 14 days to the same date:
+assignment. Offsets are medians over the three days to 2026-09-11 14:11 UTC, taken from
+`products/wsprsonde_locations.csv`; modes are from the 14 days to 2026-09-10:
 
 | Callsign | Mode | `code` | Assigned | Measured | Verdict |
 |---|---|---|---|---|---|
@@ -100,9 +100,9 @@ assignment. Offsets are medians over the three days to 2026-09-10 22:39 UTC, tak
 | **KH2R** | FST4W | 3 | **36 Hz** | **35 Hz** | **1 Hz below assignment** |
 | DP0GVN | WSPR | 1 | 37 Hz | 37 Hz | ok |
 | WW0WWV | WSPR | 1 | 50 Hz | 50 Hz | ok |
-| TI4JWC | WSPR | 1 | 15 Hz | 15 Hz | ok |
+| TI4JWC | WSPR | 1 | 15 Hz | 16 Hz | ok |
 | **KD0EAG** | FST4W | 3 | **80 Hz** | **128 Hz** | **mismatch** |
-| **VY0ERC** | FST4W | 3 | 150 Hz | too few reports | **not measurable** |
+| **VY0ERC** | FST4W | 3 | 150 Hz | withheld | **not measurable** |
 | N4RVE | FST4W | 3 | 100 Hz | 100 Hz | ok, after a **nine-day outage** |
 | **W8GPS** | FST4W | 3 | **none on record** | 60 Hz | **unassigned** |
 | **ZD7GWM** | WSPR | 1 | 100 Hz nominal, **uncoordinated** | 100 Hz, 1 Hz on 28 MHz | **collides with N4RVE** |
@@ -111,15 +111,31 @@ assignment. Offsets are medians over the three days to 2026-09-10 22:39 UTC, tak
 Gwyn Griffiths raised both
 ([issue #6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6),
 [issue #9](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/9)): a unit transmits WSPR
-**or** FST4W, several have changed over their lives, and a query has to select on the numeric
-code rather than the mode name. The code column above is the one measured in `wspr.rx` and
-`wsprdaemon.spots` over the 14 days to 2026-09-10, where WSPR-2 reads `1`, FST4W-120 reads
-`3`, and `2` is 15-minute WSPR. Gwyn records WSPR as `2` in the `wsprsonde` PostgreSQL table
-and warns that the neighbouring `mode` column numbers the same thing differently again.
-**The number is therefore a property of the source, not of the mode**, which is why R1.3
-stores the mode by name and the code per source, and why nothing should compare two sources'
-codes to each other. Two registry rows were corrected in the same pass: TI4JWC and DP0GVN
-were recorded as FST4W and transmit WSPR.
+**or** FST4W, several have changed over their lives, and a query has to select on a number
+rather than on the mode name. Which number depends on which table is being queried, and the
+two in play here disagree. WsprDaemon publishes the mapping at <https://wspr.live/>:
+
+| Mode | `code` in `wspr.rx` | `mode` in the WsprDaemon PostgreSQL tables |
+|---|---|---|
+| WSPR-2 | 1 | 2 |
+| WSPR-15 | 2 | 15 |
+| FST4W-120 | 3 | 3 |
+| FST4W-300 | 4 | 6 |
+
+**The two encodings agree on FST4W and disagree on WSPR**, and that is what makes the trap
+subtle: a system that confuses them is right about every FST4W station and wrong about every
+WSPR one, so it looks half correct. The `wsprsonde` table carries the PostgreSQL convention,
+where WSPR is `2` (Gwyn Griffiths, issue #6). R1.3 therefore stores the mode by name and each
+source's number beside it, and `data/wsprsonde_stations.csv` carries both columns so the
+disagreement is visible in the data rather than buried in a query.
+
+**One historical limit belongs with it.** Before 2023-01-16, `code` did not separate WSPR-2
+from FST4W-120: both were reported as `1`. Mode history reaching back past that date has to
+come from the unit record or the curator's table, never from the spot archive, which is a
+constraint on R1.4 rather than a preference.
+
+Two registry rows were corrected in the same pass: TI4JWC and DP0GVN were recorded as FST4W
+and transmit WSPR.
 
 KD0EAG is explicable, because the replacement WS-8 configured at 80 Hz has not been deployed
 and the old BeaconBlaster is still running, and nothing in the current arrangement would have
@@ -135,7 +151,19 @@ agrees, giving a median of 35 Hz on all seven measurable bands with 0 Hz spread,
 alone gives 35 Hz over 1,015 reports on 80 m. The coordinator's list of 2026-08-06 assigns
 1436 Hz. One hertz is at the resolution limit of a crowd-sourced median (R3.3), which is
 exactly why a ground-wave reference receiver is worth having, and why R2.1 records the
-assigned, configured and measured values separately instead of one number.
+assigned, configured and measured values separately instead of one number. TI4JWC makes the
+same point from the other side: three measurements across 10 and 11 September read 16, then 15,
+then 16 Hz, against a 15 Hz assignment. Both stations are on frequency. The measurement is what
+moves.
+
+**VY0ERC's row is the one to read carefully, because it was wrong yesterday.** On 2026-09-10
+seven of its bands fell below the twenty-report floor, the eighth read 50 Hz, and the prototype
+reported a confident 50 Hz with 0 Hz spread against a 150 Hz assignment, which is a fault
+report that would have sent somebody to Ellesmere Island. The spread test cannot catch this,
+because one surviving band has a spread of zero by construction. The prototype now withholds an
+offset measured on fewer than three bands and returns *not measurable*, which is what R3.3
+asked for in the first place. A monitoring system's worst failure is not silence; it is
+confident invention.
 
 N4RVE was off the air for nine days, from 2026-08-09 23:20 UTC to
 2026-08-18 23:20 UTC, and nobody was told; Paul Elliott reported the cause as a power supply
@@ -310,6 +338,17 @@ whatever the dashboard reads rather than diverging from it (R6.3), and the dashb
 presentation layer for per-station status that R7.2 would otherwise have to build from
 nothing.
 
+**A second, prototype dashboard on `wd2` is the collision check already built.** At
+`wd2.wsprdaemon.org:3000/d/dopAJDLIk/a9e4d43` it shows the signal-to-noise ratio of a wanted
+transmitter at a chosen receiver alongside every other station heard within a user-set
+bandwidth of it, which is how a human would gauge co-channel interference
+([issue #8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8)). The transmitter need not
+be a WSPRSonde, so it answers R2.4's question as well as R2.3's. Today the frequency and
+bandwidth are typed in by hand; Gwyn Griffiths proposes populating them from the WSPRSonde
+frequency record, which is the same join this system exists to make. **Adopt it rather than
+rebuild it**, and point it at the registry. The §2.3 collision is the case it would have shown:
+two 1 W beacons on one channel, visible as one plot.
+
 ---
 
 ## 5. Regulatory basis for positive control
@@ -458,17 +497,20 @@ say so rather than defaulting to the FCC's.
   enclosure marking, firmware version, GPSDO type, antenna, **transmit mode and its numeric
   code**, in-service and out-of-service dates, funding source, and free-text notes.
   A unit transmits WSPR **or** FST4W, several have changed mode over their lives, and a
-  query selects on the code rather than the name (Gwyn Griffiths,
+  query selects on a number rather than on the name (Gwyn Griffiths,
   [issue #9](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/9)). **Store the mode by
-  name and the code per source.** The number differs between sources for the same mode:
-  WSPR-2 is `1` in `wspr.rx` and `wsprdaemon.spots` and `2` in the `wsprsonde` table, and
-  that table's own `mode` column numbers it differently again (§2.2). A system that keeps
-  one code column will silently mis-select.
+  name and each source's number beside it.** WSPR-2 is `1` in `wspr.rx` and `wsprdaemon.spots`
+  and `2` in the WsprDaemon PostgreSQL tables, while FST4W-120 is `3` in both (§2.2). A system
+  that keeps a single code column is right about its FST4W stations and wrong about its WSPR
+  ones, which is the hardest kind of wrong to notice.
 - **R1.4** All history is **interval-valued**, following §4.3's schema. "Where was DP0GVN in
   March 2025" must be answerable, because a study spanning a reconfiguration otherwise
   silently mixes two different stations. Mode is one of the interval-valued fields: TI4JWC
   has run both WSPR and FST4W, and a study that assumes one mode across a span gets the
-  wrong integration time.
+  wrong integration time. **Mode history before 2023-01-16 cannot be recovered from the spot
+  archive**, because `code` reported WSPR-2 and FST4W-120 alike as `1` until that date (§2.2).
+  For anything earlier the registry and the curator's table are the only sources, which is an
+  argument for importing Gwyn's history rather than re-deriving it.
 - **R1.5** Positions are Maidenhead locators, and **locator precision must be stored and
   displayed**. A 4-character locator is ~78 km across at 40° latitude. KH2R reports `FN21`
   to WSPRNet but is really at `FN21us`, 65 km away; VY0ERC has only a 4-character locator at
@@ -506,7 +548,11 @@ say so rather than defaulting to the FCC's.
 - **R2.3** **Refuse or warn on a colliding assignment** at allocation time, with a
   configurable guard band. Flag existing collisions: KH2R and DP0GVN are 1 Hz apart.
 - **R2.4** Check assignments against **non-sonde WSPR activity** in the same window, not
-  only against other sondes. The WSPR window is shared with everyone.
+  only against other sondes. The WSPR window is shared with everyone. A prototype of exactly
+  this view already exists: Gwyn Griffiths' co-channel dashboard on `wd2` shows the signal-to-noise
+  ratio of a wanted transmitter at a chosen receiver together with every other station within a
+  user-set bandwidth of it (§4.6). Treat it as the reference for what the check should show, and
+  adopt his proposal to populate the frequency from the registry instead of by hand.
 - **R2.5** Continuously compare all three legs of R2.1 and raise a discrepancy. Assigned
   against configured catches a unit that was never reconfigured; configured against measured
   catches a unit that is not doing what it was told. §2.2's KD0EAG row is the first case and
@@ -825,9 +871,11 @@ background. Three consequences:
    [issue #7](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/7)). **DC7TO**, **N9VP**
    and **G0PKT** are still unidentified. **W8GPS** has since been added by Gwyn
    ([issue #6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6)) and came on the air
-   after the scan; its owner, hardware and funding are not on record here. Does anyone
-   recognise the remaining three, and who runs W8GPS? *(Paul, you would know who has
-   hardware.)*
+   after the scan; it is operated by John Ackermann N8UR, at a site that is not his home
+   address, and its hardware and funding are not on record here. Its 60 Hz channel has no
+   coordinator assignment behind it, so the open questions are who issued that channel and
+   whether it needs one. Does anyone recognise the remaining three? *(Paul, you would know who
+   has hardware.)*
 8. **Two channel conflicts.** KH2R and DP0GVN are assigned 1 Hz apart, and 2 Hz apart as
    measured; which moves, and when? DP0GVN is in Antarctica and reconfiguration there is not
    free. Separately, **ZD7GWM and N4RVE are both on 100 Hz** on six common bands (§2.3), which
@@ -901,7 +949,16 @@ Added 2026-09-10, for Draft 0.6:
   [#10](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/10) (Gwyn Griffiths G3ZIL)
 - `wspr.rx`, WsprDaemon ClickHouse endpoint: live queries 2026-09-10 for per-band offsets and
   per-callsign `code` values over 3 and 14 day windows, and for the first appearance of W8GPS
-- WSPRSonde Grafana dashboard, `wd10.wsprdaemon.org:3000/d/dfagb9m7nn5s0f/wsprsonde-ch`
+- WSPRSonde Grafana dashboard, `wd10.wsprdaemon.org:3000/d/dfagb9m7nn5s0f/wsprsonde-ch`, and
+  the prototype co-channel dashboard, `wd2.wsprdaemon.org:3000/d/dopAJDLIk/a9e4d43`
+
+Added 2026-09-11, for Draft 0.7:
+
+- Gwyn Griffiths' answers of 2026-09-11 in issues
+  [#6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6) (the `wsprsonde` table's mode
+  encoding; W8GPS is operated by N8UR) and
+  [#8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8) (the co-channel dashboard)
+- WSPR/FST4W mode and code mapping table, <https://wspr.live/>, read 2026-09-11
 
 Drafted with AI assistance; see `ai/ai_usage_log.md`. All rule citations, measurements and
 attributions require human verification before this document is acted upon.
@@ -909,6 +966,35 @@ attributions require human verification before this document is acted upon.
 ---
 
 ## Change log
+
+**Draft 0.7, 2026-09-11.** Gwyn Griffiths' answers to the questions Draft 0.6 put back to him,
+and a correction those answers forced. Changes from Draft 0.6:
+
+- **§2.2's mode and code paragraph was wrong and is rewritten** (issue #6). Draft 0.6 said Gwyn
+  records WSPR as `2` in the `wsprsonde` table's **`code`** column. He records it as `2` in the
+  **`mode`** column; `code` follows the `wspr.rx` convention. WsprDaemon publishes the full
+  mapping at <https://wspr.live/> and it is now quoted as a table. The two encodings **agree on
+  FST4W and disagree on WSPR**, so a system that confuses them looks half correct, and that is
+  the reason R1.3 asks for both numbers rather than one.
+- **A historical limit, new to the document** (same source): before 2023-01-16, `code` reported
+  WSPR-2 and FST4W-120 alike as `1`. Mode history earlier than that cannot come from the spot
+  archive, which constrains R1.4 and argues for importing Gwyn's history rather than re-deriving
+  it.
+- `data/wsprsonde_stations.csv` now carries `mode_code_wsprrx` and `mode_code_wd` in place of the
+  single `mode_code` column Draft 0.6 added, so the disagreement is visible in the data.
+- **§4.6 gains the prototype co-channel dashboard on `wd2`** (issue #8), which plots a wanted
+  transmitter against everything else within a chosen bandwidth of it. That is R2.3 and R2.4's
+  check, already built; **R2.4 now says adopt it and point it at the registry** rather than build
+  another. The §2.3 collision is exactly what it would have shown.
+- **Q10.7** records W8GPS as N8UR's, at a site that is not his home address, which narrows the
+  open question to its uncoordinated 60 Hz channel.
+- **A prototype bug fixed, and it is the one R3.3 was written against.** Rebuilding the product
+  on 2026-09-10 reported VY0ERC as transmitting 100 Hz from its assignment, on the strength of a
+  single band that cleared the twenty-report floor while seven others did not. One band has a
+  spread of 0 Hz by construction, so the incoherence test could not fire. `stations.py` gains
+  `OFFSET_MIN_BANDS = 3`, the verdict *not measurable*, and a product that withholds the number
+  rather than publishing it. §2.2 records the incident, because a monitoring system's worst
+  failure is confident invention rather than silence.
 
 **Draft 0.6, 2026-09-10.** Gwyn Griffiths' review of Draft 0.4, issues #5 to #10, and the
 measurements it prompted. Changes from Draft 0.5:

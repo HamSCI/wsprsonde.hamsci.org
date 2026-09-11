@@ -73,22 +73,41 @@ BAND_BASE_HZ: dict[int, int] = {
 
 
 #: Transmission mode by the ``code`` column of ``wspr.rx`` and
-#: ``wsprdaemon.spots``. Measured against known-mode WSPRSondes over the 14 days
-#: to 2026-09-10: WSPR-2 stations (DP0GVN, TI4JWC, WW0WWV, ZD7GWM) report
-#: ``code = 1`` and FST4W-120 stations (WB6CXC, KH2R, N4RVE, KD0EAG, W8GPS)
-#: report ``code = 3``.
-#:
-#: **The number is a property of the source, not of the mode.** Gwyn Griffiths
-#: (G3ZIL) records WSPR as ``2`` in the ``wsprsonde`` PostgreSQL table and warns
-#: that the neighbouring ``mode`` column uses different numbers again
-#: (`issue #6 <https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6>`_). So
-#: store the mode by name and translate per source; never compare two sources'
-#: codes to each other.
+#: ``wsprdaemon.spots``, for spots reported **on or after 2023-01-16**. Source:
+#: the WSPR/FST4W mapping table published at https://wspr.live/ (read
+#: 2026-09-11), confirmed against known-mode WSPRSondes over the 14 days to
+#: 2026-09-10.
 MODE_BY_CODE: dict[int, str] = {
-    1: "WSPR",       # WSPR-2, the 2-minute mode
-    2: "WSPR-15",    # 15-minute WSPR; rare, ~600 spots/day network-wide
-    3: "FST4W",      # FST4W-120, the 2-minute FST4W mode
+    1: "WSPR",          # WSPR-2, the 2-minute mode
+    2: "WSPR-15",
+    3: "FST4W",         # FST4W-120
+    4: "FST4W-300",
+    5: "FST4W-900",
+    8: "FST4W-1800",
 }
+
+#: The same modes by the ``mode`` column of the WsprDaemon **PostgreSQL**
+#: tables, which is what Gwyn Griffiths' ``wsprsonde`` table carries
+#: (`issue #6 <https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6>`_).
+#: Same source as :data:`MODE_BY_CODE`.
+MODE_BY_WD_MODE: dict[int, str] = {
+    2: "WSPR",          # WSPR-2
+    15: "WSPR-15",
+    3: "FST4W",         # FST4W-120
+    6: "FST4W-300",
+    16: "FST4W-900",
+    31: "FST4W-1800",
+}
+
+#: **The two encodings agree on FST4W and disagree on WSPR**, which is what
+#: makes the trap subtle: a system that confuses them is correct on every FST4W
+#: station and wrong on every WSPR one, so it looks half right. Store the mode
+#: by name and translate per source; never compare two sources' numbers.
+
+#: ``code`` before 2023-01-16 did not separate WSPR-2 from FST4W-120: both were
+#: reported as ``1``. Any mode history that reaches back past that date must come
+#: from the unit record or the curator's table, never from the spot archive.
+CODE_MODE_SPLIT_DATE = "2023-01-16"
 
 
 class WsprDaemonError(RuntimeError):

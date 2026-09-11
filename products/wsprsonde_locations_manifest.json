@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-09-10 22:39:00",
+  "generated_utc": "2026-09-11 14:11:02",
   "endpoint": "http://wd10.wsprdaemon.org/",
   "source_table": "wspr.rx",
   "curated_list": "data/wsprsonde_stations.csv",
@@ -10,7 +10,8 @@
   "thresholds": {
     "active_within_days": 2,
     "offset_match_tolerance_hz": 2,
-    "offset_incoherent_hz": 50
+    "offset_incoherent_hz": 50,
+    "offset_min_bands": 3
   },
   "counts": {
     "units": 23,
@@ -21,6 +22,7 @@
     "positioned": 21,
     "offset_mismatch": 1,
     "offset_incoherent": 1,
+    "offset_not_measurable": 1,
     "candidates_unlisted": 3
   },
   "caveats": [

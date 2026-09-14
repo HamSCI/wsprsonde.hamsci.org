@@ -71,8 +71,16 @@ Rows where these disagree are the useful ones. A `deployed` station that is `sil
 item, not a datum.
 
 Likewise `offset_assigned_hz` (what the frequency coordinator allocated) against
-`offset_observed_hz` (what receivers measure), with `offset_check` reporting `ok`, `MISMATCH`, or
-`incoherent` when the bands disagree too much for a single offset to exist.
+`offset_observed_hz` (what receivers measure), with `offset_check` reporting `ok`, `MISMATCH`,
+`incoherent` when the bands disagree too much for a single offset to exist, or `not measurable`
+when too few bands were heard to tell the difference between those two.
+
+`offset_observed_hz` is a median over reception reports, in Hz to one decimal place, and
+`offset_source` names the table it came from. The default source is
+`wsprdaemon.spots.frequency_mhz`, which resolves 0.1 Hz; `wspr.rx` is the fallback for stations
+heard by too few WsprDaemon sites, and it stores whole hertz, so a value sourced there cannot
+settle a sub-hertz question however many receivers reported. Do not compare a `wspr.rx` reading
+against a `wsprdaemon.spots` one without allowing for that.
 
 ## Identifying a WSPRSonde in the spot record
 

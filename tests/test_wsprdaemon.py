@@ -37,6 +37,63 @@ def test_band_base_sql_honours_the_column_name():
     assert "b=3,3570000" in WD._band_base_sql("b")
 
 
+def test_metres_keyed_bases_are_the_same_table_rekeyed():
+    """``wsprdaemon.spots`` keys band by wavelength; the sub-bands are the same."""
+    assert WD.BAND_BASE_HZ_BY_METRES[20] == WD.BAND_BASE_HZ[14]
+    assert WD.BAND_BASE_HZ_BY_METRES[160] == WD.BAND_BASE_HZ[1]
+    assert len(WD.BAND_BASE_HZ_BY_METRES) == len(WD.BAND_BASE_HZ)
+
+
+def test_the_two_band_keyings_do_not_overlap_by_accident():
+    """10 and 28 mean different bands in the two tables, which is the trap."""
+    assert WD.BAND_METRES[28] == 10
+    assert WD.BAND_METRES[10] == 30
+    assert WD.BAND_BASE_HZ_BY_METRES[10] != WD.BAND_BASE_HZ[10]
+
+
+def test_subhz_query_reads_the_float_column_not_the_integer_one():
+    """``wsprdaemon.spots.frequency`` is the floor of ``frequency_mhz``."""
+    captured = {}
+
+    def fake_query_rows(sql, **kwargs):
+        captured["sql"] = sql
+        return []
+
+    original = WD.query_rows
+    WD.query_rows = fake_query_rows
+    try:
+        WD.observed_offsets_subhz(["KH2R"])
+    finally:
+        WD.query_rows = original
+
+    sql = captured["sql"]
+    assert "frequency_mhz" in sql
+    assert "wsprdaemon.spots" in sql
+    assert "band=160,1838000" in sql
+    # the bare integer column must never be summed, medianed or subtracted
+    assert "median(frequency " not in sql
+
+
+def test_subhz_query_qualifies_bands_on_receivers_not_reports():
+    """R3.3c: one nearby site reporting every slot is not a measurement."""
+    captured = {}
+
+    def fake_query_rows(sql, **kwargs):
+        captured["sql"] = sql
+        return []
+
+    original = WD.query_rows
+    WD.query_rows = fake_query_rows
+    try:
+        WD.observed_offsets_subhz(["VY0ERC"])
+    finally:
+        WD.query_rows = original
+
+    sql = captured["sql"]
+    assert "countDistinct(rx_id) AS rx" in sql
+    assert f"rx >= {WD.OFFSET_MIN_RECEIVERS}" in sql
+
+
 @pytest.mark.parametrize(
     "band, frequency, offset",
     [

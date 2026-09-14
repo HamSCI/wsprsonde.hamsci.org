@@ -195,8 +195,10 @@ class Station:
             Measured offset matches the assignment within
             :data:`OFFSET_TOLERANCE_HZ`. The tolerance covers the residual
             scatter of a median over reception reports, each carrying its own
-            receiver's frequency error; a GPS-disciplined transmitter genuinely
-            on frequency reads within 1 Hz.
+            receiver's frequency error. Measured against
+            ``wsprdaemon.spots.frequency_mhz`` a GPS-disciplined transmitter
+            genuinely on frequency reads within a few tenths of a hertz: KH2R
+            holds 34.9 to 35.2 Hz across eight bands.
 
         An empty string means no assignment on record, or nothing heard.
         """
@@ -208,7 +210,29 @@ class Station:
             return "not measurable"
         if self.observed_offset.get("spread_hz", 0) >= OFFSET_INCOHERENT_HZ:
             return "incoherent"
-        return "ok" if abs(int(assigned) - int(observed)) <= OFFSET_TOLERANCE_HZ else "MISMATCH"
+        # float, not int: the sub-hertz source reports 35.2 Hz, and int() would
+        # truncate the tenths this measurement exists to provide.
+        difference = abs(float(assigned) - float(observed))
+        return "ok" if difference <= OFFSET_TOLERANCE_HZ else "MISMATCH"
+
+    @property
+    def offset_source(self) -> str:
+        """Which table the offset was measured from, or ``""`` if none was.
+
+        R3.3a of the requirements asks for this to be recorded per station,
+        because the two sources do not make the same claim: 35 Hz from
+        ``wspr.rx`` and 35.0 Hz from ``wsprdaemon.spots`` differ in what they
+        rule out.
+
+        >>> s = Station(**{f: "" for f in Station.__dataclass_fields__
+        ...                if f not in ("activity", "observed_offset", "_age_days")})
+        >>> s.offset_source
+        ''
+        >>> s.observed_offset = {"source": "wsprdaemon.spots"}
+        >>> s.offset_source
+        'wsprdaemon.spots'
+        """
+        return self.observed_offset.get("source", "")
 
 
 def load(path: Path | str | None = None) -> list[Station]:

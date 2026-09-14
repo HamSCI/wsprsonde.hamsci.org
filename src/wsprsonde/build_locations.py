@@ -35,6 +35,10 @@ from pathlib import Path
 from . import stations as S
 from . import wsprdaemon as WD
 
+#: Mirror carrying ``wspr.rx``, used for the R3.3a fallback. The WsprDaemon
+#: mirrors serve ``wsprdaemon.spots``; this one serves the full WSPRNet record.
+WSPR_RX_HOST = "http://db1.wspr.live/"
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PRODUCTS_DIR = REPO_ROOT / "products"
 
@@ -47,6 +51,7 @@ OUTPUT_COLUMNS = [
     "grid", "grid_precision", "lat", "lon",
     "hardware", "gpsdo", "mode", "mode_code_wsprrx", "mode_code_wd", "antenna",
     "offset_assigned_hz", "offset_observed_hz", "offset_spread_hz", "offset_check",
+    "offset_source",
     "record_status", "on_air_status", "last_spot_utc", "days_since_last_spot",
     "spots_in_window", "reporters_in_window", "bands_in_window", "power_dbm_reported",
     "date_in_service", "date_out_service", "funding", "ok_to_list_public", "notes",
@@ -92,6 +97,7 @@ def build_rows(stations: list[S.Station]) -> list[dict]:
                 st.observed_offset.get("spread_hz", "") if st.offset_measurable else ""
             ),
             "offset_check": st.offset_check,
+            "offset_source": st.offset_source,
             "record_status": st.record_status,
             "on_air_status": st.on_air_status,
             "last_spot_utc": activity.last_spot if activity else "",
@@ -118,6 +124,53 @@ def write_csv(path: Path, columns: list[str], rows: list[dict]) -> None:
         writer.writerows(rows)
 
 
+def measure_offsets(calls: list[str], days: int, host: str) -> dict[str, dict]:
+    """Measure frequency offsets, preferring resolution and falling back to ears.
+
+    R3.3a of the requirements: take the offset from
+    ``wsprdaemon.spots.frequency_mhz``, which resolves 0.1 Hz, and fall back to
+    ``wspr.rx`` only where a station is heard by too few WsprDaemon sites to
+    measure. ``wspr.rx`` stores whole hertz, so a median taken there cannot
+    settle a sub-hertz question however many receivers report; that is why it is
+    the fallback rather than the default.
+
+    Each station's result is tagged with the table it came from, because the two
+    do not make the same claim (R3.3a again). Two queries at most, run one after
+    the other: these are volunteer-run servers.
+
+    Parameters
+    ----------
+    calls : list of str
+    days : int
+        Look-back window, passed to both measurements.
+    host : str
+        Passed to :func:`wsprsonde.wsprdaemon.query` for the sub-hertz leg. The
+        ``wspr.rx`` fallback always goes to ``db1.wspr.live``, which is the
+        mirror that carries that table.
+
+    Returns
+    -------
+    dict
+        As :func:`wsprsonde.wsprdaemon.observed_offsets`, with a ``source`` key
+        naming the table.
+    """
+    offsets = WD.observed_offsets_subhz(calls, days=days, host=host)
+    for entry in offsets.values():
+        entry["source"] = "wsprdaemon.spots"
+
+    thin = sorted(
+        c for c in calls
+        if len(offsets.get(c, {}).get("per_band", {})) < S.OFFSET_MIN_BANDS
+    )
+    if thin:
+        print(f"  {len(thin)} callsign(s) thin on wsprdaemon.spots, "
+              f"falling back to wspr.rx: {', '.join(thin)}")
+        for call, entry in WD.observed_offsets(thin, days=days, host=WSPR_RX_HOST).items():
+            entry["source"] = "wspr.rx"
+            offsets[call] = entry
+    return offsets
+
+
 def main(argv: list[str] | None = None) -> int:
     """Build the location product. Returns a process exit code."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -140,7 +193,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"querying {args.host} ...")
     activities = WD.activity(calls, days=args.window_days, host=args.host)
-    offsets = WD.observed_offsets(calls, days=args.offset_days, host=args.host)
+    offsets = measure_offsets(calls, days=args.offset_days, host=args.host)
     S.resolve(station_list, activities, offsets, as_of=as_of)
 
     rows = build_rows(station_list)
@@ -170,7 +223,14 @@ def main(argv: list[str] | None = None) -> int:
     manifest = {
         "generated_utc": as_of,
         "endpoint": args.host,
-        "source_table": "wspr.rx",
+        # Two tables with two jobs, per R3.2 and R3.3a: the widest receiver
+        # population for liveness, the finer frequency resolution for offsets.
+        # Each row's offset_source column says which one that row came from.
+        "source_tables": {
+            "activity": "wspr.rx",
+            "offset": "wsprdaemon.spots.frequency_mhz",
+            "offset_fallback": "wspr.rx",
+        },
         "curated_list": str((args.stations or S.DEFAULT_STATIONS_CSV).relative_to(REPO_ROOT)),
         "windows": {"activity_days": args.window_days, "offset_days": args.offset_days},
         "thresholds": {
@@ -178,6 +238,7 @@ def main(argv: list[str] | None = None) -> int:
             "offset_match_tolerance_hz": S.OFFSET_TOLERANCE_HZ,
             "offset_incoherent_hz": S.OFFSET_INCOHERENT_HZ,
             "offset_min_bands": S.OFFSET_MIN_BANDS,
+            "offset_min_receivers": WD.OFFSET_MIN_RECEIVERS,
         },
         "counts": counts,
         "caveats": [

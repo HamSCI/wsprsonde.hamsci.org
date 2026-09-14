@@ -1,7 +1,7 @@
 # WSPRSonde Management System — Requirements for Discussion
 
-**Status:** Draft 0.8, for collaborator review (change log at the end)
-**Date:** 2026-09-11 (Drafts 0.2 to 0.7 were 2026-09-02 to 2026-09-11; Draft 0.1 was
+**Status:** Draft 0.9, for collaborator review (change log at the end)
+**Date:** 2026-09-14 (Drafts 0.2 to 0.8 were 2026-09-02 to 2026-09-11; Draft 0.1 was
 2026-08-13)
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
 **Review list:** Paul Elliott WB6CXC · Rob Robinett AI6VN · Gwyn Griffiths G3ZIL ·
@@ -19,7 +19,7 @@ Kristina Collins KD8OXT · Dave Larsen KV0S
 > *Requirement comment* or *Answer to an open question* template. Issues are how I track
 > what has been raised and what has been resolved. Email to the editor works too, but
 > anything that changes the document will be turned into an issue so the reasoning is on
-> the record. Comments are being collected against **Draft 0.8**; when a requirement is
+> the record. Comments are being collected against **Draft 0.9**; when a requirement is
 > changed as a result, the change log at the end will say which issue drove it.
 
 ---
@@ -181,21 +181,43 @@ KH2R transmits 1 Hz below its assignment. Gwyn Griffiths measured 35 Hz at W2NAF
 ([issue #10](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/10)); the spot record
 agrees, giving a median of 35 Hz on all seven measurable bands with 0 Hz spread, and W2NAF-2
 alone gives 35 Hz over 1,015 reports on 80 m. The coordinator's list of 2026-08-06 assigns
-1436 Hz. One hertz is at the resolution limit of a crowd-sourced median (R3.3), which is
-exactly why a ground-wave reference receiver is worth having, and why R2.1 records the
-assigned, configured and measured values separately instead of one number. TI4JWC makes the
-same point from the other side: three measurements across 10 and 11 September read 16, then 15,
-then 16 Hz, against a 15 Hz assignment. Both stations are on frequency. The measurement is what
-moves.
+1436 Hz.
 
-**VY0ERC's row is the one to read carefully, because it was wrong yesterday.** On 2026-09-10
+Draft 0.8 explained the leftover hertz as the resolution limit of a crowd-sourced median. That
+was wrong, and Gwyn corrected it
+([issue #8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8)): the limit belongs to the
+table rather than to the crowd. `wspr.rx` stores frequency as whole hertz, and the median of
+whole numbers is a whole number however many reports go into it. `wsprdaemon.spots` carries the
+same spots to 0.1 Hz in its `frequency_mhz` column. Re-measured there over the three days to
+2026-09-14, KH2R reads **34.9 to 35.2 Hz on all eight bands**, a spread of 0.3 Hz over 102,000
+reports. The station is on 35 Hz and the list assigns 1436, so the disagreement is real rather
+than an artefact of rounding, and R2.1 keeps the assigned, configured and measured values in
+three separate columns for exactly this case. A ground-wave reference receiver remains worth
+having, because it is the only leg that does not depend on the crowd at all.
+
+The same column settles TI4JWC, which Draft 0.8 reported as wandering: three measurements across
+10 and 11 September read 16, then 15, then 16 Hz against a 15 Hz assignment. At 0.1 Hz resolution
+TI4JWC reads 15.0 to 15.3 Hz on seven bands and holds still. The wander was `wspr.rx`'s
+whole-hertz median stepping across a boundary as the receiving population changed from day to
+day. Both stations are on frequency. What moved was the measurement, and now we can see by how
+much.
+
+**VY0ERC's row is the one to read carefully, because it has been wrong twice.** On 2026-09-10
 seven of its bands fell below the twenty-report floor, the eighth read 50 Hz, and the prototype
-reported a confident 50 Hz with 0 Hz spread against a 150 Hz assignment, which is a fault
-report that would have sent somebody to Ellesmere Island. The spread test cannot catch this,
-because one surviving band has a spread of zero by construction. The prototype now withholds an
-offset measured on fewer than three bands and returns *not measurable*, which is what R3.3
-asked for in the first place. A monitoring system's worst failure is not silence; it is
-confident invention.
+reported a confident 50 Hz with 0 Hz spread against a 150 Hz assignment, which is a fault report
+that would have sent somebody to Ellesmere Island. The spread test cannot catch this, because one
+surviving band has a spread of zero by construction. The prototype withholds an offset measured
+on fewer than three bands and returns *not measurable*, which is what R3.3 asked for.
+
+Moving to the sub-hertz source brought the same failure back by a different route, which is why
+R3.3c exists. In `wsprdaemon.spots` VY0ERC clears twenty reports on all eight bands, but four of
+those bands are one receiver reporting several hundred times, and a single receiver's median
+measures that receiver. Qualifying bands on distinct receivers instead leaves VY0ERC with three:
+50.3 Hz on 30 m, 50.8 Hz on 15 m and 112.7 Hz on 17 m. The product now reads *incoherent* with a
+62.4 Hz spread, which is the honest answer. The station's bands genuinely disagree, and no single
+offset exists to compare against the 150 Hz assignment. A monitoring system's worst failure is
+not silence; it is confident invention, and it is worth noticing that the same invention arrived
+twice from opposite directions.
 
 N4RVE was off the air for nine days, from 2026-08-09 23:20 UTC to
 2026-08-18 23:20 UTC, and nobody was told; Paul Elliott reported the cause as a power supply
@@ -218,6 +240,17 @@ which is N4RVE's assigned channel. Over the three days to 2026-09-10 the two mea
 Two GPS-disciplined 1 W beacons are sharing a channel across most of HF. Nobody did anything wrong: ZD7GWM was never in a list the coordinator could check
 against, which is R2.7's case for registering non-HamSCI units and R2.3's case for checking
 an assignment against everything on the air rather than against our own roster.
+
+**Measured to 0.1 Hz the collision is tighter than the whole-hertz figures showed.** Over the
+five days to 2026-09-14, `wsprdaemon.spots` puts the two within **0.4 Hz on every one of the
+five common bands**, and the 24 MHz pair that read one hertz apart in `wspr.rx` is 0.7 Hz apart:
+99.7 Hz for N4RVE against 100.4 Hz for ZD7GWM. That separation sits well below the tone spacing
+of either mode, so the two signals occupy the same slice of the sub-band rather than merely the
+same 200 Hz window. Gwyn has plotted it from the `wd2` dashboard (§4.6) with W1XP as the
+receiver on 14 MHz, showing ZD7GWM's WSPR reports against N4RVE's FST4W reports inside a
+1 Hz bandwidth ([issue #8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8)). One pair
+of spots from that check, both at 2026-09-12 01:12 UTC into W1XP, reads 14.0970996 MHz for
+N4RVE and 14.0970998 MHz for ZD7GWM: 0.2 Hz apart in a single receiver at a single minute.
 
 There is no tool that would have caught either at assignment time, and no tool that would
 catch the next one.
@@ -380,6 +413,13 @@ bandwidth are typed in by hand; Gwyn Griffiths proposes populating them from the
 frequency record, which is the same join this system exists to make. **Adopt it rather than
 rebuild it**, and point it at the registry. The §2.3 collision is the case it would have shown:
 two 1 W beacons on one channel, visible as one plot.
+
+**It has now shown it.** Gwyn ran the dashboard on 2026-09-12 with W1XP as the receiver, ZD7GWM
+as the wanted transmitter on 14 MHz, and a bandwidth of 1 Hz. The panel returns N4RVE's FST4W
+reports alongside ZD7GWM's WSPR reports and the other co-channel traffic, checked against the
+underlying rows (§2.3). That is the check of R2.3 and R2.4 running against a real collision, on
+existing infrastructure, with the frequency typed in by hand. Supplying that frequency from the
+registry is the whole of the remaining work.
 
 ---
 
@@ -608,11 +648,31 @@ say so rather than defaulting to the FCC's.
   threshold, and treat "not heard" as *evidence of nothing being received*, not as proof the
   transmitter is dead. A single quiet day at a remote site is normal; two consecutive days at
   a station that is normally heard is a signal.
-- **R3.3** Measure the on-air offset per band as a **median over many reception reports** —
-  each report carries the receiving station's own frequency error, so a single spot is not a
+- **R3.3** Measure the on-air offset per band as a **median over many reception reports**.
+  Each report carries the receiving station's own frequency error, so a single spot is not a
   measurement. Report the spread across bands: when it exceeds a documented limit, no single
   offset exists and the system must say "not measurable" rather than "wrong frequency".
   VY0ERC is in exactly this state and must not generate a false fault.
+- **R3.3a** Take the offset from **`wsprdaemon.spots.frequency_mhz`, which resolves 0.1 Hz**,
+  and fall back to `wspr.rx` only where a station is heard by too few WsprDaemon sites
+  (issue #8). The choice of table sets the precision of the answer: `wspr.rx` stores whole
+  hertz, and a median of whole numbers is a whole number no matter how many reports go into it,
+  so no amount of additional receivers will resolve a 1 Hz question there. The trade is
+  resolution against ears, and R3.2's liveness check keeps `wspr.rx` for the same reason it
+  always did. Record which table each measurement came from, because a 35 Hz reading and a
+  34.9 Hz reading are not the same claim.
+- **R3.3c** Qualify a band on **distinct receivers**, not on a count of reports. A report floor
+  is the wrong test against `wsprdaemon.spots`: one WsprDaemon site near a transmitter reports
+  every two-minute slot and clears a twenty-report floor by itself, and a single receiver's
+  median is that receiver's frequency error rather than the transmitter's offset. VY0ERC cleared
+  twenty reports on all eight bands on 2026-09-14, four of them from **one** receiver reporting
+  between 200 and 2,158 times. Five receivers separates the current registry cleanly: VY0ERC,
+  KD0EAG and ZD7GWM each have a band down at one, and every other station sits at six or above.
+- **R3.3b** Never use `wsprdaemon.spots.frequency`, the integer column, for a frequency
+  measurement. Measured over 582,198 spots on 14 MHz in the day to 2026-09-14, it is the
+  **floor** of `frequency_mhz` rather than its rounding: the difference falls in 0 to 0.9 Hz
+  and averages 0.43 Hz. A system that reads the integer column reports every station about
+  half a hertz low, consistently enough that the error looks like a calibration offset.
 - **R3.4** Alert on: reported grid differing from the registry; reported power differing from
   the configured power; a band dropping out while others continue (an antenna, filter or
   combiner fault, and invisible in an all-bands liveness check); and a sudden collapse in
@@ -915,7 +975,9 @@ background. Three consequences:
    measured; which moves, and when? DP0GVN is in Antarctica and reconfiguration there is not
    free. Separately, **ZD7GWM and N4RVE are both on 100 Hz** on six common bands (§2.3), which
    needs a decision rather than a discussion: ZD7GWM is privately owned and outside the HamSCI
-   programme, so this is the first live test of R2.7.
+   programme, so this is the first live test of R2.7. Measured to 0.1 Hz they are within 0.4 Hz
+   on five of those bands and 0.7 Hz on the sixth, so there is no reading of the numbers under
+   which this resolves itself.
 9. **Non-US jurisdictions** — does anyone know the equivalent Canadian (ISED), German (BNetzA),
    Costa Rican and Indian requirements for unattended beacon operation? *(Michael Hartje
    DK5HH, Pierre Fogal VE3KTB, John Clark TI4JWC.)*
@@ -929,6 +991,19 @@ background. Three consequences:
     students can put a question to a real user and get an answer within a week. Which
     reviewers are willing to be named as stakeholders the team may contact, and for which
     roles in §3?
+13. **Two gaps in the spot archive's mode record**, both raised in
+    [issue #6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6) and both beyond what
+    Gwyn Griffiths can answer first-hand. First, **`wsprdaemon.spots` changed its encoding of
+    WSPR-2 more than once**: reading month by month from July 2024, WW0WWV, ZD7GWM and DP0GVN
+    all read `code = 1` to April 2025, `2` from May to October 2025, `1` again to February 2026,
+    and `2` from March 2026. Do those dates track WsprDaemon client releases or the TimescaleDB
+    to ClickHouse migration? *(Rob AI6VN, Dave W0DAS.)* Until that is known, Draft 0.9 treats
+    `wspr.rx` as the source for measured mode and `wsprdaemon.spots` as trustworthy for mode only
+    from March 2026. Second, **DP0GVN shows both mode codes at once in `wspr.rx`**, `1`
+    throughout with large numbers of `3` from January to September 2025 and from December 2025 to
+    February 2026 (March 2025: 110,072 WSPR spots against 107,524 FST4W). Is there a second
+    transmitter signing DP0GVN at Neumayer, or was the WS-8 configured band by band? *(Hyomin
+    Kim, Michael Hartje DK5HH.)*
 
 ---
 
@@ -1010,6 +1085,56 @@ attributions require human verification before this document is acted upon.
 ---
 
 ## Change log
+
+**Draft 0.9, 2026-09-14.** One correction from Gwyn Griffiths about which table a frequency
+measurement should come from, and what it changes. Changes from Draft 0.8:
+
+- **§2.2's explanation of KH2R's leftover hertz was wrong and is rewritten** (issue #8). Draft
+  0.8 blamed "the resolution limit of a crowd-sourced median". The limit belongs to the table:
+  `wspr.rx` stores whole hertz, so its median is a whole number however many receivers report.
+  `wsprdaemon.spots.frequency_mhz` resolves 0.1 Hz, and re-measured there KH2R reads **34.9 to
+  35.2 Hz on all eight bands** over 102,000 reports. The assigned-against-measured disagreement
+  is real and now carries a number that can be argued with.
+- **TI4JWC was not wandering** (same measurement). Draft 0.8 reported it reading 16, 15 and then
+  16 Hz on successive days. At 0.1 Hz it holds 15.0 to 15.3 Hz across seven bands; the wander was
+  `wspr.rx`'s whole-hertz median stepping across a boundary as the receiving population changed.
+- **§2.3's collision is tighter than the whole-hertz figures showed.** ZD7GWM and N4RVE sit
+  within **0.4 Hz on all five common bands**, and the 24 MHz pair that read one hertz apart is
+  0.7 Hz apart. That is well below the tone spacing of either mode, so the signals share a slice
+  of the sub-band and not merely the 200 Hz window.
+- **New R3.3a and R3.3b.** R3.3a requires the offset to come from
+  `wsprdaemon.spots.frequency_mhz`, with `wspr.rx` as the fallback where a station is heard by
+  too few WsprDaemon sites, and requires recording which table each measurement came from. R3.3b
+  forbids `wsprdaemon.spots.frequency`, the integer column: measured over 582,198 spots on
+  14 MHz, it is the **floor** of `frequency_mhz` rather than its rounding, averaging 0.43 Hz low,
+  which is consistent enough to pass for a calibration offset.
+- **§4.6** records that the `wd2` co-channel dashboard has now been run against the §2.3
+  collision, with W1XP as the receiver on 14 MHz at 1 Hz bandwidth, and checked against the
+  underlying rows (issue #8).
+- **Issue #6 is settled.** Gwyn has changed the `wsprsonde` table's `code` to 2 for WSPR-2, so it
+  matches `wsprdaemon.spots`. The three questions Draft 0.8 raised from the month-by-month read
+  are answered as far as he can answer them: W0DAS and AI6VN are the people who would know why
+  `wsprdaemon.spots` changed encoding mid-archive, his table already carries start and end dates
+  for TI4JWC's mode change, and he has no first-hand knowledge of a second transmitter at DP0GVN.
+  Q10.13 carries the two that remain open.
+- **New R3.3c: qualify a band on distinct receivers rather than on a count of reports.** This
+  came out of making the switch. `wsprdaemon.spots` reproduces the VY0ERC false-confidence
+  failure of Draft 0.7 by a different route, because one nearby WsprDaemon site reports every
+  slot and clears a report floor alone. §2.2's VY0ERC paragraph now records both versions of the
+  failure, and the station reads *incoherent* with a 62.4 Hz spread across the three bands that
+  survive the receiver floor.
+- **`products/` is now built from `wsprdaemon.spots.frequency_mhz`**, with `wspr.rx` as the R3.3a
+  fallback, and gains an **`offset_source`** column naming the table per station. Every measured
+  offset in the product moved to one decimal place; none of the verdicts changed except VY0ERC's,
+  from *not measurable* to *incoherent*.
+- `src/wsprsonde/wsprdaemon.py` gains `observed_offsets_subhz`, `OFFSET_MIN_RECEIVERS`,
+  `BAND_METRES` and `BAND_BASE_HZ_BY_METRES`, and a module warning about the two tables'
+  frequency columns and their two different band keyings. `build_locations.py` gains
+  `measure_offsets`, which runs the sub-hertz query and falls back for thin stations.
+- **The channel-capacity note is reconciled** (§7 and open question 5): it argued that a 6 Hz
+  grid with a 0.1 Hz guard band left no margin against a one-hertz measurement floor. The floor
+  is 0.1 Hz. The case for a wider step now rests on transmitter drift and Doppler, which nobody
+  has measured for the WS-8.
 
 **Draft 0.8, 2026-09-11.** Gwyn Griffiths' third answer in issue #6, which corrects this
 document a second time, and what re-measuring on his finding turned up. Changes from Draft 0.7:

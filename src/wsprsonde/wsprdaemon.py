@@ -13,7 +13,30 @@ interface with no credentials required. Two tables matter here:
     Extended spots (SNR *plus* calibrated noise) from WsprDaemon client sites
     only -- about 5% of receivers. Better data, far fewer ears. Not used for
     liveness, because a sonde can be perfectly healthy and simply not be heard
-    by any of those ~80 sites.
+    by any of those ~80 sites. It is, however, the table to use for a
+    **frequency** measurement; see the frequency-column note below.
+
+.. warning::
+   **Frequency resolution differs between the two tables, and one column lies.**
+   Gwyn Griffiths (G3ZIL) raised this on 2026-09-14 in issue #8; measured the
+   same day:
+
+   * ``wspr.rx.frequency`` is whole hertz. A median of whole numbers is a whole
+     number, so **no number of receivers resolves a 1 Hz question in this
+     table.** This is the real reason KH2R's assigned-against-measured hertz
+     could not be settled from ``wspr.rx``, and the module previously blamed
+     receiver scatter for it.
+   * ``wsprdaemon.spots.frequency_mhz`` (``Float64``, MHz) resolves **0.1 Hz**
+     and is the column to measure offsets from.
+   * ``wsprdaemon.spots.frequency`` (``UInt64``, Hz) is the **floor** of
+     ``frequency_mhz``, not its rounding. Over 582,198 spots on 14 MHz in the
+     day to 2026-09-14 the difference fell in 0 to 0.9 Hz and averaged 0.43 Hz.
+     Reading it reports every station about half a hertz low, consistently
+     enough to pass for a calibration offset. Do not use it.
+
+   ``wsprdaemon.spots`` also has both ``band`` (wavelength in metres) and
+   ``band_m``; ``wspr.rx.band`` is integer MHz. See :data:`BAND_BASE_HZ` and
+   :data:`BAND_BASE_HZ_BY_METRES`.
 
 Endpoint conventions, all of them load-bearing (see
 ``polar-psws/docs/wsprdaemon_extended_spots_access.md`` for the full write-up):
@@ -69,6 +92,40 @@ BAND_BASE_HZ: dict[int, int] = {
     24: 24_926_000,   # 12 m
     28: 28_126_000,   # 10 m
     50: 50_294_400,   # 6 m
+}
+
+#: Wavelength in metres for each key of :data:`BAND_BASE_HZ`. ``wspr.rx.band``
+#: is integer MHz; ``wsprdaemon.spots.band`` is this instead. Mixing them
+#: silently returns nothing for most bands and the wrong band for 10 and 28.
+BAND_METRES: dict[int, int] = {
+    1: 160, 3: 80, 5: 60, 7: 40, 10: 30, 14: 20,
+    18: 17, 21: 15, 24: 12, 28: 10, 50: 6,
+}
+
+#: Distinct receivers a band needs before its median counts as a measurement,
+#: when measuring against ``wsprdaemon.spots``.
+#:
+#: A report floor is the wrong test for this table. Each report carries the
+#: receiving station's own frequency error, so the median is only a transmitter
+#: measurement when it is taken across receivers; one WsprDaemon site near a
+#: transmitter reports every two-minute slot and clears a twenty-report floor by
+#: itself. Measured on the registry over the three days to 2026-09-14, VY0ERC
+#: cleared twenty reports on all eight bands, four of them from a **single**
+#: receiver reporting 200 to 2,158 times. That is the same false confidence
+#: ``stations.OFFSET_MIN_BANDS`` was added to stop, arriving by a different
+#: route.
+#:
+#: Five separates the registry cleanly. Minimum distinct receivers per band over
+#: that window: VY0ERC, KD0EAG and ZD7GWM each have a band with 1; every other
+#: station is at 6 or above (DP0GVN 6, WB6CXC 8, W8GPS 8, N4RVE 9, WW0WWV 11,
+#: KH2R 12, TI4JWC 21).
+OFFSET_MIN_RECEIVERS = 5
+
+#: :data:`BAND_BASE_HZ` keyed the way ``wsprdaemon.spots`` keys its ``band``
+#: column. Derived rather than written out, so the sub-band table has exactly
+#: one definition.
+BAND_BASE_HZ_BY_METRES: dict[int, int] = {
+    BAND_METRES[mhz]: base for mhz, base in BAND_BASE_HZ.items()
 }
 
 
@@ -145,6 +202,20 @@ def _band_base_sql(column: str = "band") -> str:
     True
     """
     arms = ", ".join(f"{column}={band},{base}" for band, base in BAND_BASE_HZ.items())
+    return f"multiIf({arms}, 0)"
+
+
+def _band_base_sql_metres(column: str = "band") -> str:
+    """As :func:`_band_base_sql`, keyed for ``wsprdaemon.spots.band``.
+
+    Examples
+    --------
+    >>> _band_base_sql_metres().startswith("multiIf(band=160,1838000")
+    True
+    """
+    arms = ", ".join(
+        f"{column}={band},{base}" for band, base in BAND_BASE_HZ_BY_METRES.items()
+    )
     return f"multiIf({arms}, 0)"
 
 
@@ -359,6 +430,102 @@ def observed_offsets(calls: list[str], days: int = 3, **kwargs) -> dict[str, dic
         values = sorted(entry["per_band"].values())
         entry["offset_hz"] = values[len(values) // 2]
         entry["spread_hz"] = values[-1] - values[0]
+    return out
+
+
+def observed_offsets_subhz(
+    calls: list[str],
+    days: int = 3,
+    min_reports: int = 20,
+    min_receivers: int = OFFSET_MIN_RECEIVERS,
+    **kwargs,
+) -> dict[str, dict]:
+    """Measure on-air offsets to 0.1 Hz from ``wsprdaemon.spots``.
+
+    The sub-hertz counterpart to :func:`observed_offsets`. Use this one to
+    settle a frequency question and that one to answer "is it on the air",
+    because the two tables trade resolution against the size of the receiving
+    population:
+
+    ============================  ===============  ==================
+    ..                            ``wspr.rx``      ``wsprdaemon.spots``
+    ============================  ===============  ==================
+    Resolution                    1 Hz             0.1 Hz
+    Receivers                     all of WSPRNet   WsprDaemon sites only
+    ============================  ===============  ==================
+
+    ``wspr.rx`` stores whole hertz, and the median of whole numbers is a whole
+    number, so adding receivers there never resolves a 1 Hz disagreement. This
+    function reads ``frequency_mhz`` and **not** the neighbouring integer
+    ``frequency`` column, which is that column's floor and reads about 0.43 Hz
+    low (see the module warning).
+
+    The cost is ears. A station heard by few WsprDaemon sites clears
+    ``min_reports`` on fewer bands, or on none, in which case it is absent from
+    the result and the caller should fall back to :func:`observed_offsets`.
+
+    Parameters
+    ----------
+    calls : list of str
+        Transmitter callsigns.
+    days : int, optional
+        Look-back window.
+    min_reports : int, optional
+        Reports a band needs before its median is reported.
+    min_receivers : int, optional
+        **Distinct** receivers a band needs, defaulting to
+        :data:`OFFSET_MIN_RECEIVERS`. This is the floor that matters here; see
+        that constant for why a report count is not enough.
+    **kwargs
+        Passed to :func:`query`.
+
+    Returns
+    -------
+    dict
+        ``{callsign: {'offset_hz': float, 'spread_hz': float,
+        'per_band': {band_metres: float}, 'n': int}}``, all offsets in Hz
+        rounded to 0.1, and ``per_band`` keyed by **wavelength in metres**, the
+        way ``wsprdaemon.spots`` keys its own ``band`` column.
+
+    Notes
+    -----
+    Measured this way on 2026-09-14, KH2R reads 34.9 to 35.2 Hz across all
+    eight bands against a 1436 Hz (that is, 36 Hz) assignment, and ZD7GWM and
+    N4RVE sit within 0.4 Hz of each other on all five of their common bands.
+    Neither statement can be made from ``wspr.rx``.
+    """
+    if not calls:
+        return {}
+    quoted = ", ".join(f"'{c}'" for c in calls)
+    bands = ", ".join(str(b) for b in BAND_BASE_HZ_BY_METRES)
+    rows = query_rows(
+        f"""
+        SELECT tx_sign,
+               band,
+               round(median(frequency_mhz * 1000000
+                            - {_band_base_sql_metres()}), 1) AS offset_hz,
+               count() AS n,
+               countDistinct(rx_id) AS rx
+        FROM wsprdaemon.spots
+        WHERE time >= now() - INTERVAL {int(days)} DAY
+          AND tx_sign IN ({quoted})
+          AND band IN ({bands})
+        GROUP BY tx_sign, band
+        HAVING n >= {int(min_reports)}
+           AND rx >= {int(min_receivers)}
+           AND offset_hz BETWEEN 0 AND 200
+        """,
+        **kwargs,
+    )
+    out: dict[str, dict] = {}
+    for row in rows:
+        entry = out.setdefault(row["tx_sign"], {"per_band": {}, "n": 0})
+        entry["per_band"][int(row["band"])] = float(row["offset_hz"])
+        entry["n"] += int(row["n"])
+    for entry in out.values():
+        values = sorted(entry["per_band"].values())
+        entry["offset_hz"] = values[len(values) // 2]
+        entry["spread_hz"] = round(values[-1] - values[0], 1)
     return out
 
 

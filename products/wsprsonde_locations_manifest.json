@@ -1,7 +1,11 @@
 {
-  "generated_utc": "2026-09-11 18:14:07",
+  "generated_utc": "2026-09-14 20:02:19",
   "endpoint": "http://wd10.wsprdaemon.org/",
-  "source_table": "wspr.rx",
+  "source_tables": {
+    "activity": "wspr.rx",
+    "offset": "wsprdaemon.spots.frequency_mhz",
+    "offset_fallback": "wspr.rx"
+  },
   "curated_list": "data/wsprsonde_stations.csv",
   "windows": {
     "activity_days": 30,
@@ -11,7 +15,8 @@
     "active_within_days": 2,
     "offset_match_tolerance_hz": 2,
     "offset_incoherent_hz": 50,
-    "offset_min_bands": 3
+    "offset_min_bands": 3,
+    "offset_min_receivers": 5
   },
   "counts": {
     "units": 23,
@@ -21,8 +26,8 @@
     "silent": 12,
     "positioned": 21,
     "offset_mismatch": 1,
-    "offset_incoherent": 1,
-    "offset_not_measurable": 1,
+    "offset_incoherent": 2,
+    "offset_not_measurable": 0,
     "candidates_unlisted": 3
   },
   "caveats": [

@@ -231,4 +231,4 @@ development.
   UTC) that were never committed and have no log entry: Draft 0.95 of the requirements, the
   technical note's advisory status, a README line, and the telecon notes. Their tool and review
   status are not recorded here.
-- **Git Hash**: [fill in after committing]
+- **Git Hash**: 7e65a2b (PR HamSCI/wsprsonde.hamsci.org#13)

@@ -9,7 +9,7 @@ A WSPRSonde is an 8-band, GPS-disciplined, ~1 W-per-band WSPR/FST4W beacon built
 a *controlled* transmitter — known position, known power, GPS-locked frequency, continuous
 operation — instead of whoever happened to be on the air.
 
-This repository holds two things:
+This repository holds three things:
 
 1. **A reconciled station registry and the code that checks it against reality.** Four partial
    records of the network existed as of August 2026 — a spreadsheet, a database table, an email
@@ -34,8 +34,9 @@ have the system reproduce this repository's own verification findings without he
 
 ## Reviewing the requirements
 
-The requirements document is out for collaborator review (Draft 0.8, 2026-09-11) ahead of the
-capstone proposal being submitted. To comment, **file an issue**,
+The requirements document is out for collaborator review (Draft 0.96, 2026-10-02). It is the
+starting draft for the capstone team, and the requirements become final when that team and the
+WSPRSonde team agree on them. To comment, **file an issue**,
 one per point, using the *Requirement comment* or *Answer to an open question* template; cite the
 requirement by number (`R4.2`, `N3`, `§5.3`) or the question by number (`Q1`). Section 10 of the
 document lists the questions the editor most wants answered, and section 5 (the FCC Part 97

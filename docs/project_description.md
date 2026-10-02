@@ -40,7 +40,7 @@ radio around the world.
 
 A receiver alone measures a path, not a medium. To turn a reception report into physics you must
 know what was transmitted: from where, at what power, on exactly what frequency, and when.
-Ordinary amateur transmissions do not come with those guarantees, so the PSWS programme deploys
+Ordinary amateur transmissions do not come with those guarantees, so the PSWS program deploys
 its own transmitters, and those are the subject of this project.
 
 **The WSPRSonde.** A WSPRSonde is a purpose-built beacon designed and manufactured by Paul
@@ -69,8 +69,8 @@ allocate offsets and keep a list. That somebody is currently WB6CXC, by email.
 [WSPRNet](https://wsprnet.org) collects the spots. [WsprDaemon](https://wsprdaemon.org), run by
 Rob Robinett, AI6VN, mirrors and extends them and exposes the whole archive over a ClickHouse
 database interface: the `wspr.rx` table holds over twelve billion rows. Every HamSCI WSPRSonde
-also ships with a Raspberry Pi host computer running a **MeshCentral** agent, which gives the
-programme remote terminal access to the host and reports whether it is online.
+also ships with a Raspberry Pi host computer, connected to the transmitter by a serial cable, and
+that computer is where this project's control software runs.
 
 **The legal dimension, which is what makes this project unusual.** In the United States an
 amateur station transmitting unattended is still the responsibility of a licensed human, the
@@ -128,12 +128,22 @@ right channel was never deployed and the old one is still running, but nothing i
 arrangement would have surfaced it. VY0ERC is heard by so few receivers that its channel cannot
 be verified at all from the spot record, which is itself worth knowing. N4RVE went off the air on
 9 August 2026 and stayed off for nine days, and the outage was discovered by a script rather than
-by a person. KH2R's row shows what a repeat measurement is worth: the crowd-sourced median read
-36 Hz in August and 35 Hz in September, and a ground-wave measurement by G3ZIL settled it at
-35 Hz. One hertz is the resolution limit of the method, which is why the system records the
-assigned and the measured value separately rather than reconciling them into one number. The last
+by a person. KH2R's row shows what the choice of data source is worth. The whole-hertz archive read
+36 Hz in August and 35 Hz in September, and a ground-wave measurement by G3ZIL put it at 35 Hz.
+Re-measured from a table that resolves 0.1 Hz, it reads 34.9 to 35.2 Hz on all eight bands, so
+its 1 Hz disagreement with the assignment is real. That is why the system keeps the assigned and
+the measured value as separate records. The last
 two rows are stations that were on the air with no coordinated assignment at all, and one of them
 is sharing a channel with a HamSCI unit.
+
+**VY0ERC's row is the one to read carefully, because the prototype got it wrong twice.** On
+10 September seven of its bands fell below the minimum report count while the eighth read 50 Hz,
+and the prototype published a confident 50 Hz against a 150 Hz assignment: a fault report that
+would have sent somebody to Ellesmere Island. A spread test cannot catch this, because one
+surviving band has a spread of zero by construction. The prototype now counts distinct receivers
+per band, and it reports VY0ERC as incoherent: its bands genuinely disagree, so no single offset
+exists to compare against the assignment. **A monitoring system's worst failure is confident
+invention**, and this project is full of places to make that mistake.
 
 **Frequency collisions are already on the books.** KH2R and DP0GVN are assigned one hertz apart.
 WB6CXC flagged it by email in August 2026 and one of them should move. Worse, a privately owned
@@ -182,10 +192,11 @@ validity intervals; and the whole network's health should be visible on one page
 
 **This system will be used, and two properties follow from that.**
 
-1. **The interlock must fail safe, and must not become the network's weak point.** A bug in the
-   control subsystem must result in a silent beacon, never an uncontrolled one. Equally, if the
-   web application's availability becomes the network's availability, the cure is worse than the
-   disease. Both constraints are design inputs from the first week, not tests at the end.
+1. **The interlock must fail safe.** A bug in the control subsystem must result in a silent
+   beacon, never an uncontrolled one. The settled design ties each keep-alive-enabled station to
+   the server, so a server outage takes those stations off the air until it returns. That trade
+   was made knowingly, and it makes server uptime an operational requirement with monitoring of
+   its own. Both are design inputs from the first week.
 2. **The record must outlive the application.** The registry is the network's institutional
    memory, and it must be readable in twenty years by someone with a text editor. The canonical
    form is a versioned text file in Git, with the web application as a view and an editor over it.
@@ -194,7 +205,7 @@ validity intervals; and the whole network's health should be visible on one page
 
 ```
    Control operators and hosts                        Scientists and the public
-   phone: state, inhibit, alerts                      map, station pages, exports
+   phone: state, configure, on/off, alerts            map, station pages, exports
               │                                                  ▲
               ▼                                                  │
  ┌───────────────────────────────────────────────────────────────┴─────────┐
@@ -203,17 +214,17 @@ validity intervals; and the whole network's health should be visible on one page
  │   Registry ──────────── units, sites, callsign history, consent flags   │
  │   Coordination ──────── channel assignment, collision and rule checks   │
  │   Monitoring ────────── liveness, channel verification, alerting        │
- │   Positive control ──── authorisation service, audit log, emergency stop│
+ │   Positive control ──── operator pool, poll endpoint, audit log, e-stop │
  │   Products ──────────── versioned CSV and JSON feed, public map         │
- └──▲────────────▲───────────────────▲───────────────────────┬─────────────┘
-    │            │                   │                       │ short-lived
-    │ registry   │ spots             │ agent state           │ authorisation
-    │ (Git)      │ (ClickHouse)      │ (MeshCentral)         ▼
- ┌──┴──────┐ ┌───┴──────────┐ ┌──────┴───────┐   ┌─────────────────────────┐
- │ CSV and │ │ WsprDaemon   │ │ MeshCentral  │   │ WSPRSonde host          │
- │ JSON in │ │ wspr.rx      │ │ agent on     │   │ (Raspberry Pi)          │
- │ Git     │ │ 12e9 rows    │ │ every host   │   │   keep-alive daemon     │
- └─────────┘ └──────────────┘ └──────────────┘   │        │ serial         │
+ └──▲────────────▲───────────────────────────────────────────▲─────────────┘
+    │            │                      poll: "is a control  │
+    │ registry   │ spots                operator reachable?" │
+    │ (Git)      │ (ClickHouse)                              │
+ ┌──┴──────┐ ┌───┴──────────┐                    ┌───────────┴─────────────┐
+ │ CSV and │ │ WsprDaemon   │                    │ WSPRSonde host          │
+ │ JSON in │ │ spot tables  │                    │ (Raspberry Pi)          │
+ │ Git     │ │ 12e9 rows    │                    │   keep-alive daemon     │
+ └─────────┘ └──────────────┘                    │        │ serial         │
                                                  │        ▼                │
                                                  │   WS-8 transmitter      │
                                                  │   dead-man: 1 minute    │
@@ -227,101 +238,110 @@ is interval-valued: "where was DP0GVN in March 2025" must be answerable, because
 a reconfiguration otherwise silently mixes two different stations.
 
 **Coordination.** Channel assignment with the checks a human cannot reliably do: refuse a
-colliding assignment, warn when a proposed channel sits on top of ordinary WSPR traffic, and
-enforce the FCC rule that forbids two beacons at one site from occupying the same band.
+colliding assignment, show a proposed channel against ordinary WSPR traffic, and enforce the FCC
+rule that forbids two beacons at one site from occupying the same band. Channels are chosen by a
+simple stated rule (prefer an unassigned channel, then the least-used one, breaking ties by
+distance), and the requirements invite a better algorithm.
 
 **Monitoring.** Scheduled polling of the WsprDaemon archive, and a per-band measurement of each
-station's actual transmit frequency. Cross-referenced against MeshCentral, this distinguishes
-outcomes that need different people: a healthy station, a radio fault with a reachable computer,
-and the interesting case where the site's network is down while the transmitter is still
-radiating.
+station's actual transmit frequency. Cross-referenced against each host computer's own
+check-ins with the server, this distinguishes outcomes that need different people: a healthy
+station, a radio fault with a reachable computer, and the interesting case where the site's
+network is down while the transmitter is still radiating.
 
-**Positive control.** A short-lived authorisation the host computer must hold in order to keep
-feeding the transmitter's dead-man timer. When the operator inhibits the station, or when the
-control link fails, the authorisation stops arriving, the keep-alive stops, and the dead-man
-stops the transmitter within about two minutes. Nothing in that chain depends on the web
-application staying up: its failure mode is the same as its silence.
+**Positive control.** Each unit has a pool of designated control operators. The host computer
+polls the server every 15 to 30 seconds, asking whether any of them is reachable, and feeds the
+transmitter's dead-man timer only while the answer is yes. When the operator switches the station
+off, or when the control link fails, the keep-alive stops and the dead-man stops the transmitter
+within two to three minutes. The keep-alive is a per-unit setting, because Part 97 governs US
+stations and five units are licensed elsewhere. The same interface lets the operator change most
+of the unit's configuration without a terminal or a site visit.
 
 **Products.** A versioned, citable data feed for downstream consumers. The `polar-psws` station
-maps already consume the prototype version of exactly this file, and a Grafana dashboard
-maintained by G3ZIL plots per-station Doppler shift from the recorded transmit frequency. That
-dashboard is a constraint as much as a resource: it must keep working through whatever the team
-does to the table underneath it.
+maps already consume the prototype version of exactly this file, and two Grafana dashboards
+maintained by G3ZIL read the same record. One plots per-station Doppler shift from the known
+transmit frequency. The other shows a wanted transmitter against every station within a chosen
+bandwidth of it, which is the collision view of R2 in working form. Both are constraints as much
+as resources: they must keep working through whatever the team does to the table underneath
+them.
 
 ## 5. Draft Technical Requirements
 
-These are the advisor's and stakeholders' targets, drawn from the accompanying requirements
-document, which is under collaborator review and freezes at Draft 1.0 when this proposal is
-submitted. Refining them into a complete, testable specification, with each stakeholder need
-traced to a requirement, is the team's first deliverable.
+These are the advisor's and stakeholders' targets, summarized from Draft 0.96 of the
+accompanying requirements document, which is under collaborator review. The numbering follows
+that document, so R4 here is R4 there. They are a starting draft. The final requirements are the
+ones the student team and the WSPRSonde team agree on together, and reaching that agreement,
+with each stakeholder need traced to a testable requirement, is the team's first deliverable.
 
 | # | Requirement (initial target) |
 |---|---|
-| R1 | **Unit and site registry.** One record per physical transmitter, keyed on the hardware's own serial number, grouped into sites. Carries callsign and callsign history, licensee, control operators, host, position with stated precision, hardware model, firmware version, antenna, transmit mode and its numeric code, in-service dates, funding source, and deployment pipeline state from `in_stock` through `on_air` to `retired`. A unit transmits WSPR *or* FST4W and several have changed over their lives, and the numeric code for a given mode differs between data sources, so the mode is stored by name and the code is stored per source. |
-| R2 | **Interval-valued history.** Every fact about a unit is valid over a time interval, and any past state must be reconstructable. The canonical store is a versioned text file in Git; the application is a view and an editor over it. |
-| R3 | **Publication consent per field group.** Every record carries an explicit consent flag for position, operator name, and contact details, defaulting to *not published*. Host street addresses, emails, and phone numbers must never appear in any exported product. |
-| R4 | **Channel coordination.** Record assigned channel offsets, refuse or warn on a colliding assignment with a configurable guard band, check proposed channels against non-WSPRSonde traffic in the same window, and enforce the one-channel-per-band-per-site rule. Assignments must be issuable for units outside HamSCI, because the manufacturer ships to people who are not in the programme, and an uncoordinated private unit is already sharing a channel with a HamSCI one. A unit whose bands legitimately carry different offsets must be recordable as such rather than reported as a fault. |
-| R5 | **Three-way channel verification.** Compare the **assigned** offset, the **configured** offset read from the unit itself, and the **measured** offset derived from reception reports. Raise a discrepancy on any disagreement. Assigned against configured catches a unit nobody reconfigured; configured against measured catches a unit that is not doing what it was told. |
-| R6 | **On-air monitoring.** Poll the WsprDaemon archive on a schedule, record per unit the last spot, reporter count, bands, reported grid, and reported power, and classify state as active, intermittent, or silent against documented thresholds. Treat "not heard" as evidence of nothing being received rather than proof that a transmitter is dead. |
-| R7 | **Fault detection and alerting.** Alert on a reported grid or power that disagrees with the registry, on a single band dropping out while others continue, and on a collapse in reporter count that regional stations do not share. Alerts carry a severity that says what the recipient must do, are de-duplicated and rate-limited, escalate when unacknowledged, and go out by a channel the recipient chose. |
-| R8 | **Device integration.** Read each unit's own status report over its serial port through the host computer: serial number, firmware version, configured frequency list, and running state. Cross-check host reachability against MeshCentral agent state and distinguish a radio fault from a network fault. |
-| R9 | **Positive control.** A control operator can inhibit transmission immediately from a phone, see live confirmation of the current state, and hand duty to another designated operator with the change logged. An append-only audit log records every inhibit, enable, delegation, and authorisation lapse. A network-wide emergency stop exists for a systemic problem. |
-| R10 | **The interlock lives in the transmitter.** The host computer holds a short-lived authorisation obtained over the control link and feeds the WS-8's dead-man timer only while it holds one. The dead-man is set to one minute. Loss of the link, an expired authorisation, an unreachable server, or a clock disagreement must all result in not transmitting. The daemon owns the serial port exclusively, because any traffic to the unit resets its timer. |
-| R11 | **Roles, authentication, and access control.** Roles assigned per unit and per site rather than globally: control operator, host, frequency coordinator, network operator, curator, scientist, public. A host who is not a licensed amateur can see status but cannot hold control authority. Authenticate against something operators already have, and require multi-factor authentication for any account that can enable transmission. Callsign self-assertion is not authentication. |
-| R12 | **Public presentation and data products.** A public network map and per-station pages showing only consented records; a public channel-assignment table so operators outside the programme can see what is in use; and a documented, versioned machine-readable feed with a provenance manifest, which downstream consumers can cite. |
-| R13 | **Deployment, degradation, and handoff.** Runs on HamSCI infrastructure, reproducibly deployable from a documented procedure, with automated tests and continuous integration. When the WsprDaemon archive is unreachable the system reports "unknown" rather than "silent". Maintainable by volunteers after the team graduates: a runbook, a backup and restore procedure, and a monitored health check. |
+| R1 | **Registry.** One record per physical transmitter, keyed on the hardware's own serial number, grouped into sites. Carries callsign history, licensee, control operators, host, position with its precision, hardware, firmware, antenna, transmit mode, in-service dates, and deployment pipeline state from `in_stock` through `on_air` to `retired`. Every fact is valid over a time interval, so any past state can be reconstructed. Mode is stored by name and translated to each system's own numeric code at every boundary, because those codes disagree. Every record carries a publication-consent flag per field group, defaulting to *not published*, and host street addresses, emails and phone numbers never appear in an exported product. |
+| R2 | **Frequency coordination.** Record each unit's **assigned**, **configured** and **measured** channel offset, and raise a discrepancy when any two disagree. Assign channels by a simple stated rule: prefer an unassigned channel, otherwise the least-used one, breaking ties by geographic separation. The rule is a placeholder, and a better algorithm is invited. Refuse or warn on a colliding assignment, enforce the one-channel-per-band-per-site rule for US stations, allow per-band overrides, and issue assignments for units outside HamSCI. Before an assignment is confirmed, show the proposed channel against all WSPR traffic, using G3ZIL's existing dashboard. |
+| R3 | **Monitoring.** Poll the WsprDaemon archive on a schedule, record per unit the last spot, receivers, bands, reported grid and reported power, and classify each unit as active, intermittent or silent. Measure each band's offset as a median from the table that resolves 0.1 Hz, counting a band only when at least five distinct receivers heard it. Alert on a grid or power mismatch, a single band dropping out, or a collapse in receivers, with severities, de-duplication, rate limiting and escalation. Read each unit's own status report over its serial port, tell a radio fault from a network fault using the host's check-ins, and present unregistered WSPRSonde-like transmitters as candidates for a human to confirm. |
+| R4 | **Positive control.** Every unit has one or more designated control operators, and the station stays up while any one of them is reachable. A control operator can switch the transmitter off from a phone with one deliberate action, see live confirmation of its state, and set most of its configuration through the web app. The host feeds the WS-8's one-minute dead-man only while the server reports a control operator reachable, and any failure results in not transmitting. The keep-alive is a per-unit setting. An append-only audit log records every action, and a network-wide emergency stop exists. |
+| R5 | **Access control.** Roles assigned per unit and per site: control operator, host, frequency coordinator, network operator, curator, scientist, public. A host who is not a licensed amateur can see status but cannot hold control authority. The system owns its own accounts and authentication, with multi-factor authentication for any account that can enable transmission. Callsign self-assertion is not authentication. |
+| R6 | **Integrations.** Read-only WsprDaemon access, bounded and one query at a time. Import G3ZIL's frequency-history table as the seed, and keep the Grafana dashboard built on it working. Publish a stable feed for `polar-psws` and other consumers. |
+| R7 | **Public presentation.** A public network map and per-station pages showing only consented records, and a public channel-assignment table so operators outside the program can see what is in use. |
+| N1–N8 | **Non-functional.** Open source in the HamSCI GitHub organization. The registry is a versioned text file in Git, with the application as a view over it. When the archive is unreachable the system reports "unknown", never "silent". Server uptime is an operational requirement. Personal data is access-controlled and never exported. Prefer boring, well-documented technology a volunteer can maintain. Every threshold is a named, documented constant. Data products carry attribution and a license. |
 
-**On R5 and R6, the requirement most easily designed past.** A single reception report is not a
-measurement. Each one carries the receiving receiver's own frequency error, so individual spots
-scatter by several hertz even from a GPS-locked transmitter, and only a median across many
-receivers is stable to about one hertz. The trap has a worked example waiting in this repository:
-the existing prototype measures each band over a three-day window and keeps only bands with at
-least twenty reports, and for a weakly-heard station that silently drops the bands that disagree
-and manufactures a confident, wrong answer. Rediscovering that bug, and fixing it properly, is a
-good first week.
+**On R3, the requirement most easily designed past.** A single reception report is not a
+measurement. Each one carries the receiving station's own frequency error, so individual spots
+scatter by several hertz even from a GPS-locked transmitter. The prototype in this repository
+fell into that trap twice. It first reported a confident 50 Hz for VY0ERC from the one band that
+survived a twenty-report floor. On a finer data source, a single receiver reporting hundreds of
+times then cleared the floor by itself, and its own error became the station's measurement. The
+fix, now in the prototype, is to qualify each band on distinct receivers. Rediscovering that
+history from the data is a good first week.
 
-**On R6 and the data volume.** The `wspr.rx` table holds over twelve billion rows on a
+**On R3 and R6, and the data volume.** The `wspr.rx` table holds over twelve billion rows on a
 volunteer-run server carrying live operational load. Every query must be bounded in time, issued
 one at a time, and directed at the mirror the WsprDaemon team prefers. Read this as a systems
 requirement and an etiquette requirement at once: the team does not own this archive, and a
 careless polling loop is a real cost to somebody else's project.
 
-**On R10, and what students are and are not asked to decide.** This requirement touches
-transmitters that other people hold licences for, and a bug here has consequences beyond a wrong
-number on a web page. The team's scope is the design, a reference implementation of the keep-alive
-daemon, and a test harness proving the behaviour against a WSPRSonde on the bench. Deploying it
-to a licensed station is gated on review by the control operator concerned. Students should never
-be the ones deciding when someone else's transmitter goes on or off the air.
+**On R4, and what students are and are not asked to decide.** This requirement touches
+transmitters that other people hold licenses for, and a bug here has consequences beyond a wrong
+number on a web page. The team's scope is the control point: the keep-alive daemon, the poll
+endpoint and the operator interface, proven against a WSPRSonde on the bench. Deploying it to a
+licensed station is gated on review by the control operator concerned. Students should never be
+the ones deciding when someone else's transmitter goes on or off the air.
 
-**On R3 and R11.** The consent flag inherited from the existing metadata is `unknown` for most
+**On R1 and R5.** The consent flag inherited from the existing metadata is `unknown` for most
 stations, which means *not publishable* until a human asks the host. Personal data must be kept
 out of the schema's public surface from the first design, because retrofitting that boundary
 after addresses have spread through a database is far harder than drawing it correctly at the
 start.
+
+**What is out of scope.** Section 11 of the requirements lists what the review committee removed
+on 16 September 2026, including automated monitoring that shuts a station down, optimizing
+channel assignments, and dependence on third-party infrastructure. Those items are retired, and
+they are not backlog for the team to pick up if time allows.
 
 ### Success tiers
 
 The requirements above define the full system. The two-semester plan targets the objective tier;
 the threshold tier alone is a complete, successful capstone.
 
-- **Threshold (a successful capstone).** Registry, monitoring, and alerting, deployed to a staging
-  environment (R1, R2, R3, R6, R7, R11 at prototype level). **The acceptance test is a replay.**
-  Load the archived spot record for August and September 2026 and have the system reproduce, on
-  its own, the verification table in section 2: the same eight verdicts, the KD0EAG mismatch, the
-  refusal to state a channel for VY0ERC, the unlisted candidate stations, and an alert on N4RVE's
+- **Threshold (a successful capstone).** Registry and monitoring, deployed to a staging
+  environment (R1, R3 and R5 at prototype level). **The acceptance test is a replay.** Load the
+  archived spot record for August and September 2026 and have the system reproduce, on its own,
+  the verification table in section 2: the same verdicts, the KD0EAG mismatch, the refusal to
+  state a single channel for VY0ERC, the unlisted candidate stations, and an alert on N4RVE's
   outage raised within 48 hours of its start. Reproducing a known-good human analysis is how the
   team proves the monitor is right.
 - **Objective (the project goal).** The threshold system in production at wsprsonde.hamsci.org,
-  with the coordination workflow in use by the frequency coordinator, alerts reaching real control
-  operators, the public map and channel table live, the machine-readable feed consumed by the
-  `polar-psws` maps, and the device integration of R8 reading real units (adds R4, R5, R8, R12,
-  with R13 in force once the site is public). Positive control is delivered at this tier as a
-  design, a reference daemon, and a bench demonstration: cut the control link and show the
-  transmitter stop within two minutes, with the audit log to prove it.
-- **Stretch (beyond expectations).** The interlock deployed to volunteer United States stations
-  with their control operators' sign-off; the jurisdiction-aware handling that non-US stations
-  need; automatic enrolment of candidate transmitters after human confirmation; and uptime
-  analytics that answer "how much of 2026 was this station actually on the air" for the science.
+  with the coordination workflow in use by the frequency coordinator (R2), alerts reaching real
+  control operators, the public map and channel table live (R7), and the machine-readable feed
+  consumed by the `polar-psws` maps (R6). R4's control point is delivered: the keep-alive daemon,
+  the poll endpoint, and the operator interface for configuration and on/off. Demonstrate it on
+  the bench by cutting the control link and showing the transmitter stop within the two to three
+  minutes R4 allows, with the audit log to prove it. The non-functional requirements are in force
+  once the site is public.
+- **Stretch (beyond expectations).** The control point deployed to volunteer United States
+  stations with their control operators' sign-off; a better channel-assignment algorithm than
+  R2's placeholder rule, which the requirements explicitly invite; and uptime analytics over the
+  retained monitoring history that answer "how much of 2026 was this station actually on the air"
+  for the science.
 
 Everything above the threshold is upside. Because the project is grant funded, significant
 resources are available to help the team reach the upper tiers, beyond what is normally available
@@ -346,10 +366,11 @@ the deployment pipeline states sit in the threshold tier rather than being defer
 
 ### Semester 1 (Fall 2026): Requirements, Design, and the Registry and Monitor
 
-- Requirements elicitation with WB6CXC, G3ZIL, AI6VN, and the PSWS team. Freeze the specification
-  at Draft 1.0. The requirements document already carries the reasoning; the work is turning it
-  into a testable specification with traceability, and resolving the questions its section 10
-  leaves open.
+- Requirements review with the WSPRSonde technical team (WB6CXC, G3ZIL, KD2ZHK and the advisor)
+  and the other reviewers, including AI6VN and the PSWS team. The requirements document already
+  carries the reasoning. The work is turning it into a testable specification with
+  traceability, resolving the questions its section 10 leaves open, and agreeing on a revision
+  with the WSPRSonde team. That agreed revision is the baseline the team builds against.
 - Data investigation: query the real archive, measure it, and design the schema and storage
   strategy against what was measured rather than against an estimate. Re-derive the section 2
   findings from scratch as the first exercise.
@@ -361,19 +382,19 @@ the deployment pipeline states sit in the threshold tier rather than being defer
 - **Replay validation** against the archived record, the threshold acceptance test. This milestone
   needs no live deployment and no hardware, which is what makes it the right first-semester
   target.
-- **Milestones:** requirements review (mid-semester), architecture and design review, threshold
-  system demonstrated on staging, replay validation passed.
+- **Milestones:** requirements agreed with the WSPRSonde team (mid-semester), architecture and
+  design review, threshold system demonstrated on staging, replay validation passed.
 
 ### Semester 2 (Spring 2027): Coordination, Control, Deploy, Demonstrate
 
 - Coordination workflow with collision and rule checking, put in front of the frequency
   coordinator and used for a real assignment.
 - Device integration: read a real unit's own status report through its host computer, and land the
-  three-way channel comparison of R5.
-- Positive control, in the order the risk demands: design review first, then the reference
-  keep-alive daemon, then the bench harness against a WSPRSonde and a Raspberry Pi in the lab.
-  Demonstrate the dead-man stopping the transmitter when the link is cut, and produce the audit
-  log for it.
+  three-way channel comparison of R2.
+- Positive control, in the order the risk demands: design review first, then the keep-alive
+  daemon and the poll endpoint, then the operator interface for configuration and on/off, then
+  the bench harness against a WSPRSonde and a Raspberry Pi in the lab. Demonstrate the dead-man
+  stopping the transmitter when the link is cut, and produce the audit log for it.
 - Deploy to wsprsonde.hamsci.org on HamSCI infrastructure; security review; accessibility audit;
   publish the public map, the channel table, and the machine-readable feed.
 - Handoff: runbook, backup and restore rehearsal, volunteer maintainer walkthrough, open-source
@@ -385,14 +406,15 @@ the deployment pipeline states sit in the threshold tier rather than being defer
   open-source release.
 
 **Why the interlock is second-semester work.** It is the only part of this system whose failure
-puts a transmitter on the air when it should not be, and the regulatory reading behind it is still
-being argued among the reviewers. The team should have a working registry and monitor, and a
-settled specification, before writing code that keys a radio.
+puts a transmitter on the air when it should not be. The review committee adopted its reading of
+the regulations in September 2026, and that reading still awaits the judgement of someone who has
+argued these rules in practice. The team should have a working registry and monitor, and an
+agreed specification, before writing code that keys a radio.
 
 ## 7. Deliverables
 
-1. Requirements specification at Draft 1.0 or later, with traceability from stakeholder needs to
-   requirements and the open questions resolved (semester 1).
+1. Requirements specification agreed with the WSPRSonde team, with traceability from
+   stakeholder needs to requirements and the open questions resolved (semester 1).
 2. Technology trade study and architecture design document.
 3. Working platform deployed at wsprsonde.hamsci.org.
 4. Documented, versioned data feed and API with a published schema, data dictionary, and
@@ -402,8 +424,9 @@ settled specification, before writing code that keys a radio.
    for a volunteer maintainer.
 7. Validation report: the replay against the archived record, and the faults the live system
    caught in service.
-8. Positive-control package: design document, reference keep-alive daemon, bench test harness, and
-   a demonstration report showing transmission stopping within the required interval.
+8. Positive-control package: design document, keep-alive daemon, poll endpoint, operator
+   interface for configuration and on/off, bench test harness, and a demonstration report showing
+   transmission stopping within the required interval.
 9. Final capstone report, poster, and public demonstration.
 10. Open-source release to the HamSCI GitHub organization under the MIT license, and a
     presentation at the [2027 HamSCI Workshop](https://hamsci.org/hamsci2027).
@@ -423,7 +446,7 @@ satisfy rather than argue with.
   remote host, across a network that fails; distinguishing three kinds of failure from two
   signals; and designing a watchdog chain whose failure mode is silence.
 - **Requirements and compliance engineering:** turning a written regulation into a testable
-  system property, and defending the design to the people whose licences depend on it. This is
+  system property, and defending the design to the people whose licenses depend on it. This is
   rare experience for a new graduate and it transfers directly to regulated industries.
 - **Working with real users:** an international volunteer organization, hardware in Antarctica,
   and stakeholders who will tell you plainly when a requirement is wrong. Several already have.
@@ -460,22 +483,27 @@ and underclassmen.
 This project is grant funded. Significant resources are available to help students, beyond what is
 normally available to capstone projects:
 
-- **Real stakeholders and a written baseline.** The requirements document accompanying this
-  proposal is the product of a collaborator review round with the manufacturer, the frequency
+- **Real stakeholders and a written starting draft.** The requirements document accompanying
+  this proposal is the product of a collaborator review round with the manufacturer, the frequency
   coordinator, and the data curator, and it records the reasoning behind each requirement. The
   reviewers are available to the team as customers.
+- **A technical team for design questions**, reached in one email: Paul Elliott WB6CXC (hardware
+  and firmware), Gwyn Griffiths G3ZIL (data analysis, WSPR and FST4W, databases), Gerard Piccini
+  KD2ZHK (user interface) and the advisor. Majid Mokhtari, the University's research and lab
+  engineer, arranges access to hardware.
 - **A working prototype to start from.** This repository already holds the reconciled registry, a
   read-only WsprDaemon client, the channel-measurement code, the WSPRSonde detection method, and
   the data product that `polar-psws` consumes. It is a specification by example, and the team is
   free to keep, replace, or improve any of it.
 - **Read access to the archives:** the WsprDaemon ClickHouse endpoint, the historical frequency
-  table, the WSPRSonde Grafana dashboard built over it, and MeshCentral for the HamSCI fleet.
+  table, and two Grafana dashboards built over it (per-station Doppler, and a co-channel view that
+  is the collision check in working form).
 - **Hardware for bench work:** a WSPRSonde and a Raspberry Pi host in the Scranton lab, for the
   device integration and the interlock harness.
 - **Hosting on HamSCI infrastructure**, with the wsprsonde.hamsci.org domain and a staging
   environment.
 - **Access to the manufacturer.** WB6CXC has answered detailed questions about the hardware's
-  serial interface and dead-man behaviour during the requirements review, on the record in this
+  serial interface and dead-man behavior during the requirements review, on the record in this
   repository's issue tracker.
 - Appropriate resources through the advisor's grant funding for hosting, services, and tooling.
 - Mentorship from the advisor and from HamSCI volunteer software engineers.
@@ -489,7 +517,7 @@ normally available to capstone projects:
 |---|---|
 | **Automatic control** | Operation with no control operator at the control point. Permitted for beacons only on the frequency segments listed in §97.203(d), none of which a WSPRSonde uses. |
 | **Beacon** | In FCC terms, "an amateur station transmitting communications for the purposes of observation of propagation and reception or other related experimental activities." A WSPRSonde is one. |
-| **BeaconBlaster** | The WSPRSonde's predecessor, still in service at one site. It has no dead-man timer, which is why it cannot meet the control requirement in R10. |
+| **BeaconBlaster** | The WSPRSonde's predecessor, still in service at one site. It has no dead-man timer, which is why it cannot meet the control requirement in R4. |
 | **Callsign** | A station's government-issued identifier, such as W2NAF or DP0GVN. Public by convention. |
 | **Channel offset** | A WSPRSonde's position within the 200 Hz WSPR window, in hertz above the bottom of it. One offset applies to all of a unit's bands, and the coordinator allocates them. |
 | **ClickHouse** | The column-oriented database whose HTTP interface exposes the WsprDaemon spot archive. |
@@ -498,8 +526,8 @@ normally available to capstone projects:
 | **Dead-man** | A timer in the WS-8 that shuts its transmitters down after a set interval with no traffic from the host computer, and re-arms when traffic resumes. Also called a watchdog. |
 | **FST4W** | A newer digital mode, successor to WSPR, used by WSPRSondes for the same purpose. |
 | **GPSDO** | GPS-disciplined oscillator. The reference that locks a WSPRSonde's transmit frequency to within a fraction of a hertz. |
+| **Keep-alive** | Traffic from the host computer that re-arms the WS-8's dead-man. In this system the host sends it only while the server reports a control operator reachable. |
 | **Grid square** | A Maidenhead locator: a four- or six-character code such as `FN21` or `CN88ln` that encodes latitude and longitude. Four characters is about 78 km across at mid-latitudes, which matters at a polar site. |
-| **MeshCentral** | The remote management server HamSCI runs. Every WSPRSonde host computer runs an agent that reports to it and permits remote access. |
 | **Part 97** | Title 47, Part 97 of the U.S. Code of Federal Regulations: the amateur radio service rules. Sections §97.109, §97.203, and §97.213 constrain this project. |
 | **PSWS** | Personal Space Weather Station. HamSCI's network of volunteer-hosted scientific radio receivers, of which the WSPRSondes are the transmit side. |
 | **Remote control** | Operation in which a control operator at a control point manipulates the station through a control link. §97.213(b) requires that transmission stop within three minutes if that link malfunctions. |
@@ -517,7 +545,7 @@ normally available to capstone projects:
    [docs/requirements_wsprsonde_management_system.md](requirements_wsprsonde_management_system.md)
 3. This repository, including the reconciled registry and the verification code:
    https://github.com/HamSCI/wsprsonde.hamsci.org
-4. Manufacturer's answers on the WS-8 serial interface and dead-man behaviour, issue tracker:
+4. Manufacturer's answers on the WS-8 serial interface and dead-man behavior, issue tracker:
    https://github.com/HamSCI/wsprsonde.hamsci.org/issues
 5. Turn Island Systems, WSPRSonde hardware: https://turnislandsystems.com
 6. WsprDaemon: https://wsprdaemon.org
@@ -527,9 +555,8 @@ normally available to capstone projects:
 10. 47 CFR Part 97, amateur radio service, via Cornell Legal Information Institute:
     https://www.law.cornell.edu/cfr/text/47/part-97 (§97.109 station control, §97.203 beacon
     station, §97.213 telecommand)
-11. MeshCentral: https://meshcentral.com
-12. HamSCI Personal Space Weather Station: https://hamsci.org/psws
-13. 2027 HamSCI Workshop, 17–18 April 2027, University of Scranton: https://hamsci.org/hamsci2027
+11. HamSCI Personal Space Weather Station: https://hamsci.org/psws
+12. 2027 HamSCI Workshop, 17–18 April 2027, University of Scranton: https://hamsci.org/hamsci2027
 
 ---
 

@@ -19,6 +19,7 @@ coordinator); Rob Robinett AI6VN (WsprDaemon); Gwyn Griffiths G3ZIL (station met
 frequency history); Gary Mikitin AF8A (host recruitment, hamsci.org); Hyomin Kim (NJIT);
 Gerard Piccini KD2ZHK, Majid Mokhtari (Scranton — configuration and shipping);
 Michael Hauan AC0G; David Witten KD0EAG
+**Institution**: The University of Scranton
 **Funder**: U.S. National Science Foundation — OPP-2332427, AGS-2432821, AGS-2432822,
 AGS-2432823, AGS-2432824
 **Project period**: 2026 — ongoing
@@ -31,17 +32,33 @@ record true, coordinates frequencies without collisions, alerts when a station f
 each control operator a positive-control mechanism sufficient to meet their regulatory
 obligations.
 
+## Standing Rules
+
+These two are binding on every HamSCI project and are imported here so they load into context
+automatically:
+
+@.claude/rules/ai-governance.md
+@.claude/rules/hamsci-data.md
+
+`.claude/rules/python-code.md` is scoped by its own `paths:` frontmatter to `.py`,
+`pyproject.toml` and `requirements*.txt`. The template's LaTeX rule was removed because this
+project has no LaTeX.
+
 ## Repository Structure
 
 ```text
 wsprsonde.hamsci.org/
 ├── CLAUDE.md
 ├── README.md
+├── LICENSE
+├── CITATION.cff                        ← citation metadata
 ├── pyproject.toml
+├── .gitignore
 ├── .claude/
 │   ├── settings.json
-│   ├── commands/commit.md              ← /commit workflow
-│   └── rules/{ai-governance,python-code}.md
+│   ├── commands/commit.md              ← /commit workflow (branch, commit, PR)
+│   └── rules/{ai-governance,hamsci-data,python-code}.md
+├── .github/ISSUE_TEMPLATE/             ← requirement comment, open question, bug, feature, question
 ├── ai/ai_usage_log.md                  ← mandatory AI session log
 ├── data/
 │   └── wsprsonde_stations.csv          ← the curated registry (hand-maintained)
@@ -56,7 +73,10 @@ wsprsonde.hamsci.org/
 │   └── wsprsonde_candidates.csv
 ├── tests/
 ├── docs/
-│   └── requirements_wsprsonde_management_system.md
+│   ├── requirements_wsprsonde_management_system.md  ← the requirements, for review
+│   ├── project_description.md          ← the capstone project description
+│   └── technical_note_channel_capacity.md           ← advisory since Draft 0.95
+├── notes/                              ← one dated file per working session
 └── reference/                          ← source material; **not tracked** (see below)
 ```
 
@@ -87,17 +107,39 @@ Keeping both and reporting where they disagree is the point; never overwrite one
   metadata's "OK to list on HamSCI?" column. It is `unknown` for most stations. **Check it before
   publishing any station**, including in figures derived from `products/`.
 
+## Working Conventions
+
+**Session notes.** Keep one dated notes file per working session in `notes/`, named
+`YYYY-MM-DD_<topic>.md`, recording what was decided, why, what it depends on, and what is still
+open. Write them for a reader with no context.
+
+**Commits.** Use the `/commit` command. It logs the AI session, then commits on a feature branch
+and opens a pull request. Prefix AI-assisted commits with `[AI-assisted]`. Reference tracking
+issues (`refs #N`, or `closes #N` only when completion is yours to declare).
+
+**Every change goes through a pull request.** Branch from `origin/main`, commit on the branch,
+push the branch, and open a PR with `gh pr create`. A human maintainer reviews and merges.
+Claude never commits or pushes directly to `main` and never merges.
+
+**Pushing a feature branch and opening its PR is standing permission** once the user has approved
+the commit. Any other push needs explicit instruction. Never force-push or hard-reset. Fetch and
+verify remote state before any push.
+
+**Project boards and issue status are human-curated.** Read them freely; propose changes and
+name the exact command rather than running it.
+
 ## AI Governance
 
-All AI-assisted work must comply with the policies in `.claude/rules/ai-governance.md`.
-Every substantive AI session must be logged in `ai/ai_usage_log.md` before committing.
-Use the `/commit` command to handle logging and committing in the correct order.
+Every substantive AI session is logged in `ai/ai_usage_log.md` **before** the work is committed.
+Use `/commit`, which enforces the ordering. The full policy stack is in
+`.claude/rules/ai-governance.md`, which is imported above.
 
 Two project-specific cautions:
 
 - **Do not submit the contents of `reference/` to any AI tool** beyond what is needed to extract
   WSPRSonde facts. It is a personal mailbox.
 - **Regulatory claims must be verified, not recalled.** §5 of the requirements document cites
-  47 CFR Part 97 from primary sources read on 2026-08-13. Any change to that section must be
+  47 CFR Part 97 from primary sources read on 2026-08-13 and re-verified against the
+  current eCFR on 2026-09-16. Any change to that section must be
   re-verified against the current eCFR, and the document's own caveat that it is not legal advice
   must stay.

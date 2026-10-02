@@ -1,0 +1,23 @@
+# Citation metadata for this repository. Do not list AI tools as authors.
+# Placeholders in square brackets stay until they resolve (a DOI is assigned at
+# the first archived release).
+cff-version: 1.2.0
+message: "If you use this project, please cite it as below."
+authors:
+- family-names: "Frissell"
+  given-names: "Nathaniel A."
+  affiliation: "The University of Scranton"
+title: "wsprsonde.hamsci.org: registry, frequency coordination and on-air verification for the HamSCI WSPRSonde network"
+version: 0.1.0
+doi: "[DOI to be assigned]"
+url: "https://github.com/HamSCI/wsprsonde.hamsci.org"
+repository-code: "https://github.com/HamSCI/wsprsonde.hamsci.org"
+license: MIT
+keywords:
+  - HamSCI
+  - amateur radio
+  - space weather
+  - ionosphere
+  - citizen science
+  - WSPR
+  - WSPRSonde

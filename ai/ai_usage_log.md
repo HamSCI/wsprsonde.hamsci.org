@@ -3,7 +3,30 @@
 This log records all substantive AI-assisted sessions for the project
 "HamSCI WSPRSonde Network — Registry, Frequency Coordination and Management System".
 
-Required per University of Scranton AI Policy, HamSCI Generative AI Use Agreement, NASA AI guidance, NSF AI guidance, and NSF expectations for awards OPP-2332427 and AGS-2432821–2432824.
+Required by the HamSCI Generative AI Use Agreement, the University of Scranton AI Policy, NSF
+guidance on generative AI in funded research, and NSF expectations for awards OPP-2332427 and
+AGS-2432821 to AGS-2432824 (see `.claude/rules/ai-governance.md`).
+
+**This log is the source of truth for what AI did on this project.** A disclosure paragraph in a
+manuscript, poster, or software release summarizes this log truthfully. Keep it current: an
+entry written from memory weeks later is not a record.
+
+## Entry format
+
+```
+## [YYYY-MM-DD HH:MM TZ]
+- **Tool**: Claude (Anthropic), <exact-model-id>
+- **Session Purpose**: What the session set out to accomplish
+- **Sections/Files Affected**: Specific files, sections, or documents touched
+- **Nature of Contribution**: Draft / Edit / Analysis / Code generation / Research / Scaffolding
+- **Human Review Status**: Reviewed and verified / Partially reviewed / Pending review
+- **Git Hash**: <filled in after committing>
+```
+
+The date and time come from the system clock via `date`, never from an estimate. The `/commit`
+command produces this format and appends it in the right order. The first two entries below,
+dated 2026-04-25, were inherited from the project template and record the template's own
+development.
 
 ---
 
@@ -170,3 +193,42 @@ Required per University of Scranton AI Policy, HamSCI Generative AI Use Agreemen
 - **Nature of Contribution**: Analysis, correction, code generation and drafting. Every number was measured this session against `wsprdaemon.spots` on `wd10` and `wspr.rx` on `db1.wspr.live`, one bounded query at a time. Two findings are this session's rather than the reviewer's. First, `wsprdaemon.spots.frequency` is the **floor** of `frequency_mhz` rather than its rounding: over 582,198 spots on 14 MHz the difference fell in 0 to 0.9 Hz and averaged 0.43 Hz, so reading it reports every station about half a hertz low, consistently enough to pass for a calibration offset. Second, and the reason R3.3c exists, switching to the finer table reproduced the VY0ERC false-confidence failure of Draft 0.7 by a new route: VY0ERC cleared the twenty-report floor on all eight bands, four of them from a single receiver reporting between 200 and 2,158 times, and a single receiver's median measures that receiver. The recommendation to switch was made only after measuring that no station loses coverage; the expectation beforehand had been that WsprDaemon's smaller receiver population would cost bands, and the measurement contradicted it.
 - **Human Review Status**: Partially reviewed. The PI read all three reply drafts before they were posted, one at a time, and approved each; #10 was revised on his instruction after this session flagged an attribution problem in it, and the flag was itself wrong about whose measurement it was, corrected against the issue body before rewriting. The PI directed the source switch after reading the comparison measurements and the recommendation, and directed the reconciliation, commit and push in one instruction. The Draft 0.9 prose, the technical-note corrections and the README changes were not read line by line before committing. Open with reviewers: whether KH2R moves to 1436 or the assignment becomes 1435 (WB6CXC, issue #10); the cause of the `wsprdaemon.spots` encoding switches and whether a second transmitter signs DP0GVN (Q10.13); W8GPS's uncoordinated 60 Hz channel; and WS-8 transmitter drift over temperature, which now decides the channel-grid step.
 - **Git Hash**: 69bd1da
+
+## 2026-10-02 19:07 UTC
+- **Tool**: Claude (Anthropic), claude-opus-5-5
+- **Session Purpose**: Write a short, friendly student-recruiting overview of the capstone;
+  record NAF's decision that the requirements are final only when the student team and the
+  WSPRSonde team agree on them; reconcile every project document to that decision and to
+  Draft 0.95's scope; bring the repository up to date with HamSCI/ai_project_template.
+- **Sections/Files Affected**:
+  - `docs/requirements_wsprsonde_management_system.md`: Draft 0.96. §1 "Who will build it" and §9.1
+    rewritten (Draft 1.0 freeze retired, NAF quoted verbatim); status, date, change-log entry.
+    Also commits the uncommitted Draft 0.95 working copy (see note).
+  - `docs/project_description.md`: reconciled to Draft 0.96. MeshCentral removed throughout; the
+    R1–R13 table replaced by a summary in the requirements' own R1–R7/N numbering; KH2R
+    resolution passage corrected (0.1 Hz source); VY0ERC passage added; positive control
+    rewritten to the poll architecture; out-of-scope paragraph added; success tiers, plan,
+    deliverables and resources updated (technical team added); keep-alive in glossary;
+    American spelling throughout.
+  - `docs/technical_note_channel_capacity.md`, `README.md`: version and cross-reference updates.
+  - `notes/2026-10-02_student_overview_and_requirements_finality.md` (new), and
+    `notes/2026-09-16_telecon_scope_decision.md` (from the 2026-09-16 session, first commit).
+  - Template sync: `.claude/commands/commit.md`, `.claude/rules/python-code.md` (replaced);
+    `.claude/rules/ai-governance.md` (template version, tiers filled for Scranton and NSF,
+    NASA section dropped); `.claude/rules/hamsci-data.md`, `CITATION.cff`, three issue templates
+    (new); `.claude/rules/latex-writing.md` (removed, no LaTeX); `.gitignore` (template plus
+    `reference/`); `LICENSE` (copyright line); `CLAUDE.md` (Standing Rules, Working Conventions,
+    tree); this log's header.
+  - Published artifacts (outside git): WSPRSonde Capstone Brief updated to version 5
+    (https://claude.ai/artifact/YN2kE7bu2YTL4yBJ3Kf9se); new doc "WSPRSonde Capstone:
+    Student Overview" (https://claude.ai/artifact/BFw55N3d6EPG6LSzwzXtR1).
+- **Nature of Contribution**: Draft, edit, reconciliation, scaffolding. No measurement was re-run;
+  every number in the reconciled documents is carried from Draft 0.95 of the requirements.
+- **Human Review Status**: Pending review. NAF directed the finality decision and the
+  reconciliation, and approved this entry, the branch and the commit message; the rewritten
+  text, the restated success tiers and the governance tiers have not been read line by line.
+- **Note**: this commit also carries changes from a session on 2026-09-16 (file times 21:29–21:39
+  UTC) that were never committed and have no log entry: Draft 0.95 of the requirements, the
+  technical note's advisory status, a README line, and the telecon notes. Their tool and review
+  status are not recorded here.
+- **Git Hash**: [fill in after committing]

@@ -1,8 +1,8 @@
 # WSPRSonde Management System — Requirements for Discussion
 
-**Status:** Draft 0.9, for collaborator review (change log at the end)
-**Date:** 2026-09-14 (Drafts 0.2 to 0.8 were 2026-09-02 to 2026-09-11; Draft 0.1 was
-2026-08-13)
+**Status:** Draft 0.96, for collaborator review (change log at the end)
+**Date:** 2026-10-02 (Draft 0.95 was 2026-09-16; Drafts 0.2 to 0.9 were 2026-09-02 to
+2026-09-14; Draft 0.1 was 2026-08-13)
 **Editor:** Nathaniel A. Frissell, W2NAF (University of Scranton)
 **Review list:** Paul Elliott WB6CXC · Rob Robinett AI6VN · Gwyn Griffiths G3ZIL ·
 Gary Mikitin AF8A · Michael Hauan AC0G · Hyomin Kim (NJIT) · Gerard Piccini KD2ZHK ·
@@ -14,12 +14,18 @@ Kristina Collins KD8OXT · Dave Larsen KV0S
 > Section 10 lists the questions I most want answered. Section 5 concerns FCC rules and
 > is the section I am least confident in — please read it adversarially.
 >
+> **Draft 0.95 is a scope reduction, despite the modest version number.** The review committee met on 2026-09-16 and cut this
+> back to what a student team can build correctly in one academic year. Automated fault
+> monitoring, the channel-capacity question and third-party infrastructure dependencies all
+> left the document. If you reviewed an earlier draft, read the change log first: several
+> requirements you commented on are gone rather than changed.
+>
 > **How to comment.** File an issue at
 > <https://github.com/HamSCI/wsprsonde.hamsci.org/issues>, one per point, using the
 > *Requirement comment* or *Answer to an open question* template. Issues are how I track
 > what has been raised and what has been resolved. Email to the editor works too, but
 > anything that changes the document will be turned into an issue so the reasoning is on
-> the record. Comments are being collected against **Draft 0.9**; when a requirement is
+> the record. Comments are being collected against **Draft 0.96**; when a requirement is
 > changed as a result, the change log at the end will say which issue drove it.
 
 ---
@@ -56,21 +62,31 @@ The network has outgrown the way it is being tracked. This document proposes a w
 | **A** | **Registry** | One authoritative record of which sonde is where, run by whom, on what hardware. |
 | **B** | **Frequency coordination** | Assign, publish and *verify* each unit's channel so sondes do not collide with each other or with ordinary WSPR traffic. |
 | **C** | **Monitoring** | Detect automatically when a sonde stops transmitting, drifts off its assigned channel, or reports the wrong grid or power. |
-| **D** | **Positive control** | Give each control operator a means, available to them at all times, of confirming control of and if necessary shutting down their station — and give the transmitter a watchdog that stops it if that link is lost. |
+| **D** | **Positive control** | Put a control point in each control operator's pocket: the ability to configure their WSPRSonde and to turn its transmitter on and off from a phone or computer, with a watchdog that stops the transmitter when that link is lost. |
 
 **In scope:** the transmit side of the PSWS network — WSPRSondes and BeaconBlasters,
 whether HamSCI-funded or privately owned, worldwide.
 
 **Not in scope:** PSWS receivers (HFRx, magnetometers, VLF), science data processing, and
-the WsprDaemon infrastructure itself. Those are separate systems this one reads from.
+the WsprDaemon infrastructure itself. Those are separate systems this one reads from. §11
+carries the full list, which Draft 0.10 extended considerably.
+
+**What this document is deliberately not trying to settle.** How many WSPRSondes the world can
+support, and how frequency assignments should be optimised, are open scientific and engineering
+questions. They depend on how WSPR propagates and decodes, and the answers will shape what
+science the received data can support. The review committee's position is that these need
+careful consideration and are out of scope for an initial prototype. This document therefore
+specifies a **simple, stated, replaceable** assignment rule (R2.2) rather than a good one, and
+says so plainly where it matters.
 
 **Who will build it.** The intent is to offer this system to a team of Computer Science
 students at the University of Scranton as a senior capstone project, with the editor as
 faculty sponsor and the people on the review list as the customers. That intent shapes the
 document: the students need a stable, numbered set of requirements to work from, with the
 reasoning attached so they can make design decisions without re-deriving the domain. This
-review round exists to settle that baseline before the capstone proposal is written. See §9
-for what it implies about phasing.
+review round settles the draft the student team starts from. The final version is the one the
+student team and the WSPRSonde team agree on together (§9.1). See §9 for what it implies about
+phasing.
 
 ---
 
@@ -246,7 +262,7 @@ five days to 2026-09-14, `wsprdaemon.spots` puts the two within **0.4 Hz on ever
 five common bands**, and the 24 MHz pair that read one hertz apart in `wspr.rx` is 0.7 Hz apart:
 99.7 Hz for N4RVE against 100.4 Hz for ZD7GWM. That separation sits well below the tone spacing
 of either mode, so the two signals occupy the same slice of the sub-band rather than merely the
-same 200 Hz window. Gwyn has plotted it from the `wd2` dashboard (§4.6) with W1XP as the
+same 200 Hz window. Gwyn has plotted it from the `wd2` dashboard (§4.5) with W1XP as the
 receiver on 14 MHz, showing ZD7GWM's WSPR reports against N4RVE's FST4W reports inside a
 1 Hz bandwidth ([issue #8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8)). One pair
 of spots from that check, both at 2026-09-12 01:12 UTC into W1XP, reads 14.0970996 MHz for
@@ -291,7 +307,9 @@ whose permitted add-on forms are a prefix of up to three characters (`xxx/callsi
 single letter or digit (`callsign/x`), or a two-digit number from 10 to 99 (`callsign/dd`),
 and those messages cost two transmission slots each. A two-letter suffix is not encodable.
 Identification therefore rests on the simultaneity scan as the finder (R3.6) and the
-registry as the authority (R1.1). See Q10.5.
+registry as the authority (R1.1). The related question of a hardware identifier is settled: a
+WS-8 carries a host-readable serial number, so R1.1 keys on the hardware's own rather than on
+one we invent.
 
 This matters beyond bookkeeping. Any study that wants to use the WSPRSonde network as a
 controlled transmitter array must be able to say which spots came from a controlled
@@ -326,40 +344,29 @@ the same person: a host who is not a licensed amateur must not inherit control-o
 authority, and a control operator who is not the host must still be able to shut the
 station down.
 
+**3.1 The technical team the student developers work with.** Settled on 2026-09-16, replacing
+the earlier intent that the PI alone act as customer. Questions are routed by subject, and a
+capstone team that knows who to ask does not lose its first month finding out.
+
+| Contact | Answers questions about |
+|---|---|
+| Paul Elliott WB6CXC | WSPRSonde hardware and firmware |
+| Gwyn Griffiths G3ZIL | Data analysis, WSPR and FST4W modulation, databases |
+| Gerard Piccini KD2ZHK | User interface |
+| Majid Mokhtari | Student access to hardware (University of Scranton research and lab engineer) |
+| Nathaniel Frissell W2NAF | On-campus point of contact for everything else; liaison to the Computer Science capstone faculty |
+
+**How to use it.** Design questions go to the **technical team** as a single email: Paul, Gwyn,
+Gerard and Nathaniel together. Majid is involved only when physical access to hardware is
+required. One email to four people beats four guesses about which one to ask.
+
 ---
 
 ## 4. What already exists
 
 Build on these rather than replacing them.
 
-**4.1 MeshCentral (`meshcentral.hamsci.org`).** Every HamSCI WSPRSonde ships with a
-Raspberry Pi running a MeshCentral agent that phones home. This already provides remote
-terminal and desktop access, device grouping, per-user device delegation, agent
-online/offline state, and an event log. Nathaniel's 2026-08-06 deployment plan has Gerard
-using it for final configuration and granting each host access to their own Pi.
-
-**Use it for:** device inventory, reachability, remote configuration, and delegated access.
-
-**Do not use it as the transmit interlock.** MeshCentral tells you the *computer* is
-reachable. It says nothing about whether the *transmitter* is keying, on what frequency, or
-whether a control operator is present. Section 5 needs a mechanism that fails safe when the
-network is down, which is precisely when MeshCentral is unavailable.
-
-**It is a candidate for carrying the keep-alive that feeds that interlock**, which is a
-different role: the interlock stays in the transmitter (R4.3) and MeshCentral supplies the
-end-to-end path whose loss trips it. Paul Elliott suggested this in
-[issue #3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3). The cost to accept
-openly is that a `meshcentral.hamsci.org` outage then takes every US unit off the air within
-one dead-man interval, and the dead-man re-arms on its own when the path returns, so the
-outage costs downtime rather than a site visit. That is the correct direction to fail
-(N4, R4.4), and the exposure it creates is what Q10.2 asks about.
-
-**Its remote terminal is a hazard to the interlock.** A shell on the host reaches the
-WSPRSonde's command line, and any command there re-arms the dead-man, so an open session is
-an authorisation nobody issued. Interactive access has to be brokered and time-limited
-(R4.11).
-
-**4.2 The WsprDaemon archive.** Reachable over the ClickHouse HTTP interface at
+**4.1 The WsprDaemon archive.** Reachable over the ClickHouse HTTP interface at
 `http://wd10.wsprdaemon.org/` with no credentials (mirrors on `wd1`, `wd2`). `wspr.rx`
 carries the full WSPRNet record and is the right table for liveness, because a sonde is
 heard by whoever happens to be listening. `wsprdaemon.spots` carries calibrated noise from
@@ -370,25 +377,25 @@ heard by whoever happens to be listening. `wsprdaemon.spots` carries calibrated 
 > any query fails with `could not open file "pg_tblspc/18143/…"` because a TimescaleDB
 > chunk's tablespace is missing. Use the ClickHouse endpoint.
 
-**4.3 Gwyn's `wsprsonde` table** on `wd10.wsprdaemon.org` (PostgreSQL, database `tutorial`).
+**4.2 Gwyn's `wsprsonde` table** on `wd10.wsprdaemon.org` (PostgreSQL, database `tutorial`).
 139 rows of `(tx_call, tx_grid, mode, freq, clock, band, time_start, time_end, code)` at
 1 mHz resolution, with validity intervals. **This is the right schema for the frequency
 history** and the new system should adopt its shape rather than invent one, then take over
 maintaining it.
 
-**4.4 This repository.** `data/wsprsonde_stations.csv` is a first reconciliation of the four
+**4.3 This repository.** `data/wsprsonde_stations.csv` is a first reconciliation of the four
 sources above; `src/wsprsonde/` builds a location product from it plus live queries. It is
 deliberately a flat file with no runtime dependencies — it is a stopgap and a specification
 by example, not the proposed system.
 
-**4.5 hamsci.org.** Gary Mikitin can host a landing page. Rob Robinett and Gary both
+**4.4 hamsci.org.** Gary Mikitin can host a landing page. Rob Robinett and Gary both
 favoured GitHub over the HamSCI web server for the underlying files, consistent with the
 direction the PSWS instrument pages are already taking. **R4.1** The registry's canonical
 form should be a versioned text file in a Git repository, with the web application as a
 view and an editor over it — not a database whose history lives only in backups.
 
-**4.6 Gwyn's WSPRSonde Grafana dashboard**, at `wd10.wsprdaemon.org:3000`
-(`/d/dfagb9m7nn5s0f/wsprsonde-ch`), joins the `wsprsonde` table of §4.3 to the spot record
+**4.5 Gwyn's WSPRSonde Grafana dashboard**, at `wd10.wsprdaemon.org:3000`
+(`/d/dfagb9m7nn5s0f/wsprsonde-ch`), joins the `wsprsonde` table of §4.2 to the spot record
 and plots Doppler shift, derived signal level and clock metadata per transmitter
 ([issue #8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8)). It reads with the
 shared read-only `wdread` account that WsprDaemon publishes on <https://wsprdaemon.org>; the
@@ -426,10 +433,14 @@ registry is the whole of the remaining work.
 ## 5. Regulatory basis for positive control
 
 > **Not legal advice.** Rule text below was read from the Cornell LII copy of 47 CFR Part 97
-> on 2026-08-13 and re-verified against the eCFR (point-in-time version of 2026-08-29) on
-> 2026-09-02; the quoted passages match the eCFR text. It should still be reviewed by
-> someone who has actually argued these rules — ARRL regulatory counsel would be the right
-> destination.
+> on 2026-08-13, re-verified against the eCFR (point-in-time version of 2026-08-29) on
+> 2026-09-02, and §97.109 and §97.213 re-verified against the current eCFR again on
+> 2026-09-16 when the committee adopted the remote-control determination of §5.3; the quoted
+> passages match the eCFR text. It should still be reviewed by someone who has actually argued
+> these rules — ARRL regulatory counsel would be the right destination.
+>
+> **This section covers US stations only.** The committee decided on 2026-09-16 not to attempt
+> the Canadian, German, Costa Rican or Indian equivalents. See §5.6.
 
 **5.1 A WSPRSonde is a beacon.** §97.3(a)(9): *"An amateur station transmitting
 communications for the purposes of observation of propagation and reception or other related
@@ -476,6 +487,14 @@ defines remote control as *"the use of a control operator who indirectly manipul
 operating adjustments in the station through a control link"*, and §97.3(a)(14) defines the
 control point as *"the location at which the control operator function is performed"*.
 
+**The review committee adopted this reading on 2026-09-16, and the system is what makes it
+true.** The determination rests on the interface this document specifies: the control operator
+is given the facility to control the WSPRSonde's functions, including transmitter on and off,
+from a smartphone or computer, and is therefore at a control point of the transmitter. That is
+the definition of remote control in §97.3(a)(39) satisfied by construction, through a control
+link that did not exist before this system. The argument improves with the system rather than
+being asserted about it.
+
 **5.4 §97.213 sets the conditions, and one of them is a hard number.** An amateur station
 within 50 km of the Earth's surface may be under telecommand where:
 
@@ -521,13 +540,34 @@ still radiating with the control operator unable to reach it. That is the third 
 R3.5's table. The host must therefore feed the serial keep-alive only while it is in contact
 with the control point, and stop feeding it when that contact lapses. The interval that has
 to stay under three minutes is consequently the **renewal interval over the control link**,
-not merely the dead-man timeout at the transmitter, which also settles Q10.2: a long-lived
-authorisation with a purely local watchdog is not available to a US station.
+not merely the dead-man timeout at the transmitter.
+
+**The architecture that delivers this was settled on 2026-09-16, and the server is the
+intermediary.** `wsprsonde.hamsci.org` tracks every logged-in control device and therefore knows,
+per unit, whether any member of that unit's control-operator pool is currently reachable. The
+host Pi **polls the server** and feeds the dead-man only while the answer is yes:
+
+```
+control operator devices  ──login/session──▶  wsprsonde.hamsci.org
+                                                      ▲
+                                                      │  poll: "is a control op reachable?"
+                                               WSPRSonde host Pi
+                                                      │  serial keep-alive, only on "yes"
+                                                      ▼
+                                               WSPRSonde dead-man  (§97.213(b))
+```
+
+**The Pi pulls; the server never reaches in.** A host that loses its own network path stops
+receiving "yes" and goes quiet by itself, which is exactly the behaviour paragraph (b)
+prescribes on control-link malfunction. It needs no push infrastructure, no mobile app running
+in the foreground, and no inbound firewall rule at the host site. The cost, accepted openly, is
+that `wsprsonde.hamsci.org` becomes a single point of failure for every keep-alive-enabled
+station; see N4.
 
 **Two consequences follow from how the dead-man is fed.** Any inbound command re-arms it, so
-the keep-alive is indistinguishable from ordinary traffic on the same port: a monitoring
-script, a diagnostic session, or an open MeshCentral terminal all pet the dog, and one left
-running is an indefinite authorisation nobody issued. Outbound traffic is safe to read,
+the keep-alive is indistinguishable from ordinary traffic on the same port: a monitoring script,
+a diagnostic session, or any other process on the host that can reach the unit's command line
+all pet the dog equally, and one left running is an indefinite authorisation nobody issued. Outbound traffic is safe to read,
 because the per-frame reports the WS-8 emits carry the text `Watchdog shutdown` when it has
 tripped, which gives R4.5 an observable state with no query. **R4.11** covers both.
 
@@ -540,13 +580,19 @@ That is the mechanism this document proposes (R4.3). It also happens to give the
 operator the thing they actually want: a single control they can hit from a phone that
 demonstrably stops the transmitter.
 
-**5.6 Jurisdiction.** Part 97 governs US stations only. The network already includes
-DP0GVN (German licence, Antarctica), VY0ERC (Canada, ISED), TI4JWC (Costa Rica) and VU24JD
-(India), so it already spans four licensing administrations. **R4.9** The control-operator
-module must be jurisdiction-aware: record each station's licensing administration, apply the
-US interlock rules to US stations, and do not assert compliance with rules that have not been
-checked for the others. Where a non-US administration's rules are unknown, the system should
-say so rather than defaulting to the FCC's.
+**5.6 Jurisdiction: this section is US-only, by decision.** Part 97 governs US stations only.
+The network already includes DP0GVN (German licence, Antarctica), VY0ERC (Canada, ISED), TI4JWC
+(Costa Rica) and VU24JD (India), so it spans four licensing administrations beyond the FCC.
+
+The review committee decided on 2026-09-16 to **do US rules only for now**, and not to research
+the ISED, BNetzA, Costa Rican or Indian requirements for unattended beacon operation. That
+question leaves the document.
+
+**R4.9** Record each station's licensing administration. Apply the US rules of this section to US
+stations, and **do not assert compliance with rules that have not been checked**. Where an
+administration's requirements are unknown, the system says so rather than defaulting to the
+FCC's. Operators outside the US are responsible for their own administrations' rules, which is
+consistent with the keep-alive being a per-unit setting the control operator owns (R4.3).
 
 ---
 
@@ -570,22 +616,43 @@ say so rather than defaulting to the FCC's.
   code**, in-service and out-of-service dates, funding source, and free-text notes.
   A unit transmits WSPR **or** FST4W, several have changed mode over their lives, and a
   query selects on a number rather than on the name (Gwyn Griffiths,
-  [issue #9](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/9)). **Store the mode by
-  name and each source's number beside it.** WSPR-2 is `1` in `wspr.rx` and `2` in
-  `wsprdaemon.spots` and the WsprDaemon PostgreSQL tables, while FST4W-120 is `3` in all of
-  them (§2.2). A system that keeps a single code column is right about its FST4W stations and
-  wrong about its WSPR ones, which is the hardest kind of wrong to notice.
-- **R1.4** All history is **interval-valued**, following §4.3's schema. "Where was DP0GVN in
-  March 2025" must be answerable, because a study spanning a reconfiguration otherwise
-  silently mixes two different stations. Mode is one of the interval-valued fields: TI4JWC
-  has run both WSPR and FST4W, and a study that assumes one mode across a span gets the
-  wrong integration time: it ran FST4W from at least July 2024 and WSPR from July 2026 (§2.2).
-  Measured mode history comes from `wspr.rx`, whose `code` has been uniform since 2023-01-16;
-  `wsprdaemon.spots` has switched encoding at least three times since July 2024 and is usable
-  for this only from March 2026 (§2.2). **Mode history before 2023-01-16 cannot be recovered
-  from the spot archive at all**, because `wspr.rx` reported WSPR-2 and FST4W-120 alike as `1`
-  until that date. For anything earlier the registry and the curator's table are the only
-  sources, which is an argument for importing Gwyn's history rather than re-deriving it.
+  [issue #9](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/9)).
+- **R1.3a** **Store mode by name; translate at every boundary.** The system's internal
+  representation of transmit mode is its name (`WSPR-2`, `WSPR-15`, `FST4W-120`, `FST4W-300`).
+  A bare number is never stored as the mode, and a number is never copied from one destination
+  to another. Every read and every write passes through an explicit mapping for that specific
+  destination.
+
+  This binds on **writing** as much as on reading, which is the half Draft 0.9 left implicit.
+  The system now configures units (R4.12), so it emits mode values as well as consuming them,
+  and it must emit the encoding the receiving system expects:
+
+  | Mode | `wspr.rx` / WSPRNet | `wsprdaemon.spots` and the `wsprsonde` table | WSPRSonde firmware |
+  |---|---|---|---|
+  | WSPR-2 | 1 | 2 | **unknown, Q10.3** |
+  | WSPR-15 | 2 | 15 | **unknown, Q10.3** |
+  | FST4W-120 | 3 | 3 | **unknown, Q10.3** |
+  | FST4W-300 | 4 | 6 | **unknown, Q10.3** |
+
+  The first two columns were measured (§2.2). They **agree on FST4W and disagree on WSPR**, so
+  a system that confuses them is right about every FST4W station and wrong about every WSPR
+  one, which is the hardest kind of wrong to notice. The third column is not yet known and is
+  the one the system must get right in order to configure a unit at all.
+- **R1.4** All history is **interval-valued**, following §4.2's schema. "Where was DP0GVN in
+  March 2025" must be answerable, because a study spanning a reconfiguration otherwise silently
+  mixes two different stations. Mode is one of the interval-valued fields: TI4JWC has run both
+  WSPR and FST4W, and a study that assumes one mode across a span gets the wrong integration
+  time.
+
+  **History comes from the unit record, not from the spot archive.** The system records what a
+  unit was configured to do and when it changed, and it imports Gwyn Griffiths' existing history
+  as the seed (R6.3). It does **not** attempt to reconstruct past configuration by mining spots.
+
+  That is a decision of 2026-09-16, and §2.2 records why it is the right one: `wsprdaemon.spots`
+  changed its encoding of WSPR-2 at least three times between July 2024 and March 2026, and
+  before 2023-01-16 `wspr.rx` reported WSPR-2 and FST4W-120 alike as `1`, so early history is not
+  recoverable from spots at any price. Explaining those archive changes is out of scope (§11).
+  Recording configuration correctly going forward is the requirement.
 - **R1.5** Positions are Maidenhead locators, and **locator precision must be stored and
   displayed**. A 4-character locator is ~78 km across at 40° latitude. KH2R reports `FN21`
   to WSPRNet but is really at `FN21us`, 65 km away; VY0ERC has only a 4-character locator at
@@ -608,12 +675,29 @@ say so rather than defaulting to the FCC's.
   not: the **assigned** channel offset (Hz above the bottom of the 200 Hz WSPR/FST4W window),
   the **configured** frequency list read from the unit itself (R3.10), and the **measured**
   per-band transmit frequency to 1 mHz, following the existing `wsprsonde` table's resolution.
-  Carry the mode and its code alongside all three (R1.3), because §4.3's schema keys on them
-  and the dashboard of §4.6 selects on them.
-- **R2.2** Support the current allocation scheme: one offset applied to all of a unit's
-  bands, allocated on a 10 Hz grid from 1450 Hz upward, with the pre-existing off-sequence
-  assignments (TI4JWC 1415, KH2R 1436, DP0GVN 1437, WB6CXC 1535) recorded as exceptions
-  rather than errors.
+  Carry the mode and its code alongside all three (R1.3), because §4.2's schema keys on them
+  and the dashboard of §4.5 selects on them.
+- **R2.2** **The assignment rule, stated simply and meant to be replaced.** Decided by the
+  review committee on 2026-09-16. Applied in order:
+
+  1. **Prefer an unassigned channel.** If any channel on the grid has no unit on it, assign one
+     of those. In short: try not to reuse frequencies.
+  2. **Otherwise pick the least-used channel**, the one with the fewest units currently assigned
+     to it, so that reuse is spread evenly rather than piling onto one channel.
+  3. **Break ties by geographic separation**, choosing the candidate channel whose nearest
+     already-assigned unit is furthest away. Distance is great-circle between Maidenhead locator
+     centres, which the registry already carries (R1.5).
+
+  **Stated assumption, which the reader must not mistake for a finding: geographic separation is
+  used here as a proxy for non-interference, and on HF it is not the same thing.** A receiver
+  between two distant transmitters hears both. Getting this right needs a proper treatment of how
+  WSPR propagates and decodes, which the committee placed out of scope (§1, §11). The interface
+  must present this rule as a heuristic rather than as an optimum, and **a better algorithm is
+  explicitly invited** as work for an interested student.
+
+  Support the existing allocation scheme underneath it: one offset applied to all of a unit's
+  bands, on a 10 Hz grid from 1450 Hz upward, with the pre-existing off-sequence assignments
+  (TI4JWC 1415, KH2R 1436, DP0GVN 1437, WB6CXC 1535) recorded as exceptions rather than errors.
   **Allow a per-band override.** ZD7GWM runs 100 Hz on seven bands and 0 Hz on 28 MHz
   ([issue #7](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/7)), which this
   repository's one-offset-per-unit model reports as an incoherent unit rather than as a
@@ -622,12 +706,18 @@ say so rather than defaulting to the FCC's.
   only where the disagreement is unexplained.
 - **R2.3** **Refuse or warn on a colliding assignment** at allocation time, with a
   configurable guard band. Flag existing collisions: KH2R and DP0GVN are 1 Hz apart.
-- **R2.4** Check assignments against **non-sonde WSPR activity** in the same window, not
-  only against other sondes. The WSPR window is shared with everyone. A prototype of exactly
-  this view already exists: Gwyn Griffiths' co-channel dashboard on `wd2` shows the signal-to-noise
-  ratio of a wanted transmitter at a chosen receiver together with every other station within a
-  user-set bandwidth of it (§4.6). Treat it as the reference for what the check should show, and
-  adopt his proposal to populate the frequency from the registry instead of by hand.
+- **R2.4** **A view, not a gate.** Before confirming an assignment the coordinator must be able
+  to see the proposed channel against **all WSPR activity** in that window, not only against
+  other sondes, because the 200 Hz window is shared with everyone. This **does not block** an
+  assignment and the rule of R2.2 does not consult it; it is there so a human can notice an
+  occupied channel before issuing it.
+
+  Gwyn Griffiths' co-channel dashboard on `wd2` already is this view: it shows the
+  signal-to-noise ratio of a wanted transmitter at a chosen receiver together with every other
+  station within a user-set bandwidth of it (§4.5). **Adopt it rather than rebuild it**, and
+  populate the frequency from the registry instead of by hand, which is the proposal he made in
+  [issue #8](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/8). He has since run it
+  against the live §2.3 collision, so what it shows is known rather than assumed.
 - **R2.5** Continuously compare all three legs of R2.1 and raise a discrepancy. Assigned
   against configured catches a unit that was never reconfigured; configured against measured
   catches a unit that is not doing what it was told. §2.2's KD0EAG row is the first case and
@@ -677,18 +767,24 @@ say so rather than defaulting to the FCC's.
   the configured power; a band dropping out while others continue (an antenna, filter or
   combiner fault, and invisible in an all-bands liveness check); and a sudden collapse in
   reporter count while other stations in the region are unaffected.
-- **R3.5** Cross-check against MeshCentral agent state, and **distinguish the three
-  outcomes**, because they mean different things and need different people:
+- **R3.5** Cross-check **host reachability against on-air evidence**, and distinguish the four
+  outcomes, because they mean different things and need different people:
 
-  | Pi reachable | Being spotted | Meaning |
+  | Host polling us | Being spotted | Meaning |
   |---|---|---|
   | yes | yes | healthy |
-  | yes | no | RF fault — transmitter, filter, combiner, antenna, or a bad frequency |
+  | yes | no | RF fault: transmitter, filter, combiner, antenna, or a bad frequency |
   | no | yes | site network is down; the transmitter is fine and **still radiating** |
   | no | no | site power or connectivity failure |
 
-  The third row is the interesting one: it is the case where the control link is gone and
-  the station is still on the air, which is precisely what §97.213(b) addresses.
+  The third row is the interesting one: the control link is gone and the station is still on
+  the air, which is precisely what §97.213(b) addresses and what the keep-alive stops.
+
+  **Host reachability is free, and comes from the keep-alive poll itself.** The Pi contacts
+  `wsprsonde.hamsci.org` every 15 to 30 seconds (§5.5), so the server already knows when a host
+  last checked in, to the second, with no separate agent and no third-party system to query.
+  This is a better signal than an external agent's online state, because it is the *same* path
+  the control link runs over: if it is healthy, the control link is healthy by definition.
 
 - **R3.6** Run the simultaneity scan (§2.4) periodically to surface unregistered
   WSPRSonde-like transmitters, and present them as **candidates for a human to confirm**,
@@ -703,10 +799,10 @@ say so rather than defaulting to the FCC's.
   *informational* (a band dropped out; look when convenient), *attention* (silent for longer
   than the threshold; investigate), and *immediate* (transmitting on a channel other than
   the assigned one, transmitting while inhibited, or any condition where the control
-  operator's obligation is engaged). *Immediate* alerts must **escalate**: if the on-duty
-  control operator has not acknowledged within a documented interval, the alert goes to the
-  other designated control operators for that unit (R4.6) and then to the network operator.
-  A control operator who cannot be reached is the situation R4.6 exists to prevent.
+  operator's obligation is engaged). *Immediate* alerts must **escalate**: if no control
+  operator has acknowledged within a documented interval, the alert goes to every designated
+  control operator for that unit (R4.6) and then to the network operator. A unit whose whole
+  control-operator pool is unreachable is the situation R4.6 exists to prevent.
 - **R3.10** **Read the unit's own report.** A WS-8 answers a `CSV` command over its command
   line with a comma-delimited line carrying its serial number, software version, configured
   transmit frequency list and status, and it emits a report of the same kind after each frame
@@ -717,9 +813,16 @@ say so rather than defaulting to the FCC's.
 
 ### R4 — Positive control
 
-The requirement Nathaniel stated: a control operator should be able to claim, reasonably and
-truthfully, that they are at the control point of their WSPRSonde at all times, with the
-means of control in their pocket. See §5 for the regulatory reading behind this.
+**Rescoped on 2026-09-16.** The review committee judged that an automated monitor deciding when
+to shut a station down was too complex to design and implement correctly in six months, and
+retired it (§11). What remains is a good-faith control point in the control operator's pocket:
+
+> The requirement will be that the majority of WSPRSonde configurations and the ability to turn
+> on and off the transmitter be available to the control operator through the web app interface.
+
+That is the whole of R4. A control operator should be able to claim, reasonably and truthfully,
+that they are at the control point of their WSPRSonde at all times, with the means of control in
+their pocket. See §5 for the regulatory reading behind it.
 
 - **R4.1** Every unit has **one or more designated control operators**, each a licensed
   amateur, recorded with licence class and issuing administration.
@@ -730,16 +833,27 @@ means of control in their pocket. See §5 for the regulatory reading behind this
   fits in a pocket, works on the phone the operator already carries, and can deliver push
   alerts (R3.7, R3.9). The intent is that the control operator can truthfully say they are
   at the control point wherever they happen to be.
-- **R4.3** **The interlock lives in the transmitter.** Transmission must depend on the
-  WSPRSonde's own dead-man, set to **1 minute** and never above 2, which bounds transmission
-  after the last keep-alive at two to three minutes once the once-a-minute test is counted
-  (§5.5, §97.213(b)). The host feeds the keep-alive **only while it holds current contact
-  with the control point**, and stops feeding it the moment that contact lapses; a keep-alive
-  generated locally satisfies nothing, because the condition the rule cares about is a
-  control-link malfunction. The management system's role is to decide whether the host should
-  keep feeding the dead-man, and nothing in the keying path may depend on the web application
-  (N4). A unit with no dead-man cannot meet this requirement, which today means the
-  BeaconBlaster at KD0EAG.
+- **R4.3** **The interlock lives in the transmitter, and it is a per-unit option.**
+  Transmission depends on the WSPRSonde's own dead-man, set to **1 minute** and never above 2,
+  which bounds transmission after the last keep-alive at two to three minutes once the
+  once-a-minute test is counted (§5.5, §97.213(b)). The host feeds the keep-alive **only while
+  the server reports a control operator reachable**, and stops the moment that lapses; a
+  keep-alive generated locally satisfies nothing, because the condition the rule cares about is
+  a control-link malfunction. A unit with no dead-man cannot meet this requirement, which today
+  means the BeaconBlaster at KD0EAG.
+
+  **Enabling the keep-alive is a per-unit setting in the dashboard**, decided 2026-09-16. It is
+  neither mandatory nor uniform; the control operator configures it for their own station. The
+  reason it is per-unit rather than global is jurisdiction: Part 97 reaches US stations, and
+  DP0GVN, VY0ERC, TI4JWC, VU24JD and ZD7GWM are licensed elsewhere (§5.6). A single global
+  setting would either impose a US rule on stations it does not govern or drop it for stations
+  it does.
+
+  **What §97.213(b) requires of a US station is unchanged by the toggle.** A US station with the
+  keep-alive disabled has no provision limiting transmission on control-link malfunction. The
+  system does not enforce or warn on this: the committee decided on 2026-09-16 to leave it as a
+  plain manual setting. Setting it correctly is the control operator's responsibility, in common
+  with every other operating decision in this document.
 - **R4.4** **Fail safe.** Loss of the control link, an expired token, an unreachable server,
   or a clock disagreement must all result in *not transmitting*. The failure mode of a bug in
   this subsystem must be a silent beacon, never an uncontrolled one.
@@ -748,15 +862,25 @@ means of control in their pocket. See §5 for the regulatory reading behind this
   itself reports it where that is readable, and when the last authorisation was issued and
   when it expires. "I am at the control point" should be a statement about an observable
   system.
-- **R4.6** **Delegation, hand-off and a pool of control operators.** A unit's designated
-  control operators (R4.1) form a pool that shares responsibility for it. At every moment
-  exactly one member of the pool is **on duty** for the unit, visible to everyone with access
-  to the unit and recorded in the audit log (R4.7). A control operator must be able to hand
-  duty to another pool member for a defined period (a vacation, a hospital stay, a field
-  season) with the change logged, and the system must warn the pool and the network operator
-  when a duty period is about to lapse with no successor, because a unit with nobody on duty
-  is a unit with no control operator. Sites are unattended for months; Antarctic and Arctic
-  sites change staff seasonally.
+- **R4.6** **Multiple simultaneous control operators, and the pool is the redundancy.** A unit
+  may have several designated control operators (R4.1) assigned at once, and the station stays
+  up while **any one of them is reachable**. The server tracks logged-in control devices and
+  answers the host's poll (§5.5) with a single yes or no for the unit.
+
+  **What counts as reachable is automatic, not a human acknowledgment.** Any designated control
+  operator's phone or computer with a valid authenticated session answers in the background. No
+  member of the pool performs any action in normal operation. The pool is redundancy of
+  *reachability*: a rota requiring a human to respond every few minutes around the clock is not
+  possible and is not what this asks for.
+
+  This is the committee's answer of 2026-09-16 to how the control path gets redundancy without
+  building any into version 1. Sites are unattended for months and Antarctic and Arctic sites
+  change staff seasonally, so the pool must be editable and every change recorded in the audit
+  log (R4.7).
+
+  **Design note.** A backgrounded or sleeping phone must still count as reachable, or beacons
+  will drop off the air nightly. That argues for a server-side session the server maintains on
+  the operator's behalf while it remains valid, rather than requiring an app in the foreground.
 - **R4.7** **Audit log**, append-only: every inhibit, enable, delegation, authorisation lapse
   and configuration change, with actor and timestamp. This is the record that answers a
   regulatory enquiry, and it must be exportable.
@@ -769,35 +893,54 @@ means of control in their pocket. See §5 for the regulatory reading behind this
   correct label rather than assemble one. The system stores it; the human still has to put it
   on the wall.
 - **R4.11** **The keep-alive daemon owns the command line.** Any inbound command re-arms the
-  dead-man, so every other path to the unit's serial port has to run through the daemon,
-  which withholds all traffic while it lacks authorisation. Interactive access for
-  configuration and diagnosis (§4.1) must be brokered the same way, because a terminal left
-  open is an authorisation nobody issued and one that outlives the operator's attention.
-  Sessions must therefore expire. The system must also **verify that the dead-man is armed**
-  at each US unit, treating a `0` interval as a fault at *immediate* severity (R3.9), and
-  must read the tripped state from the outbound per-frame report rather than by querying the
-  unit, since a query is itself a keep-alive.
+  dead-man, so every other path to the unit's serial port has to run through the daemon, which
+  withholds all traffic while it lacks authorisation. Interactive access for configuration and
+  diagnosis must be brokered the same way, because a session left open is an authorisation
+  nobody issued and one that outlives the operator's attention. Sessions must therefore expire.
+  The system must read the dead-man's tripped state from the outbound per-frame report rather
+  than by querying the unit, since a query is itself a keep-alive. Where a unit has the
+  keep-alive enabled (R4.3), the system must **verify that the dead-man is actually armed** and
+  treat a `0` interval as a fault at *immediate* severity (R3.9).
+- **R4.12** **Configuration through the web app.** The majority of a WSPRSonde's configuration
+  must be settable by its control operator through the web interface, alongside the transmitter
+  on/off of R4.2. This is the committee's statement of what Phase 4 delivers, and it is the half
+  of R4 that is not about compliance: the operator should not need a terminal, a serial cable or
+  a site visit to change what their own station is doing.
+
+  Configuration writes go through the daemon of R4.11 like all other command-line traffic, and
+  any mode value written must use the firmware's own encoding rather than another system's
+  (R1.3a). **Which fields are in "the majority" is for the student team to propose and the
+  technical team (§3.1) to confirm**, against what the `CSV` report of R3.10 shows a WS-8
+  actually exposes.
 
 ### R5 — Access control
 
 - **R5.1** Roles per §3, assigned per unit and per site, not globally.
 - **R5.2** A host who is not a licensed amateur can see status and report site changes but
   cannot hold control-operator authority (R3.1).
-- **R5.3** Authenticate against something operators already have. Options to weigh:
-  MeshCentral accounts (already issued to hosts), a HamSCI SSO if one exists, or LoTW/ARRL
-  identity. **Callsign self-assertion is not authentication** and must not be the basis for
-  control authority.
+- **R5.3** **The system owns its own identity.** Accounts, authentication and session
+  management belong to this application and depend on no third-party service. Decided
+  2026-09-16, replacing Draft 0.9's list of external identity providers to weigh.
+
+  Two reasons it came out this way. First, R2.7 requires coordinating units outside HamSCI, and
+  an outside control operator should not need an account on somebody else's infrastructure in
+  order to log in to a website. Second, the server is already the control point's counterparty
+  (§5.5): it has to know who is logged in to answer the host's poll at all, so identity is not a
+  thing that can be delegated elsewhere without delegating the control path with it.
+
+  **Callsign self-assertion is not authentication** and must not be the basis for control
+  authority. How a callsign is verified against a licence is a real question and is left to the
+  team, with the technical team (§3.1) to confirm the approach.
 - **R5.4** Multi-factor authentication required for any account that can enable transmission.
 - **R5.5** Read-only public access to the consented subset (R1.6) without an account.
 
 ### R6 — Integrations
 
-- **R6.1** WsprDaemon ClickHouse, read-only, for monitoring (§4.2). Bounded time windows,
+- **R6.1** WsprDaemon ClickHouse, read-only, for monitoring (§4.1). Bounded time windows,
   one request at a time, `wd10` by default — these are volunteer-run servers under live load.
-- **R6.2** MeshCentral, for agent reachability and remote configuration (§4.1).
 - **R6.3** Gwyn's `wsprsonde` PostgreSQL table: import as the frequency-history seed, then
   take over maintenance or keep it synchronised. Gwyn has asked for a curator; this is the
-  system that becomes one. The Grafana dashboard of §4.6 reads that table, so a divergence
+  system that becomes one. The Grafana dashboard of §4.5 reads that table, so a divergence
   breaks a working scientific product rather than only a metadata record; whatever the
   system does with the table, the dashboard must keep resolving.
 - **R6.4** Publish a stable machine-readable feed for `polar-psws` and other consumers
@@ -827,9 +970,23 @@ means of control in their pocket. See §5 for the regulatory reading behind this
 - **N3 — Monitoring must degrade gracefully.** If WsprDaemon is unreachable the system
   reports "unknown", never "silent". A monitoring system that manufactures faults during its
   own outages will be ignored.
-- **N4 — The transmit interlock must not depend on the web application being up.** See R4.4.
-  If the interlock's availability becomes the network's availability, the cure is worse than
-  the disease.
+- **N4 — The interlock is in the transmitter; the *authorisation* depends on the server, by
+  design.** Draft 0.9 stated that the transmit interlock must not depend on the web application
+  being up. The architecture settled on 2026-09-16 (§5.5) makes the host poll
+  `wsprsonde.hamsci.org`, so for keep-alive-enabled units **server availability is transmit
+  availability**, and this requirement is restated rather than carried forward unchanged.
+
+  The trade was made knowingly and it fails in the safe direction: a server outage stops
+  transmission rather than stranding it, and the dead-man re-arms by itself when the server
+  returns, so an outage costs minutes of downtime and no site visit. The committee decided
+  against building redundancy into version 1. Two consequences follow, and they are requirements
+  rather than observations:
+
+  1. **Server uptime is an operational requirement of this system**, not an assumption about it.
+     It needs monitoring, and its own outages need alerting that does not run on it.
+  2. **The failure of any component other than the server must not stop transmission.** The
+     interlock stays in the transmitter, so a crash of the web front end, the database or the
+     monitoring subsystem is survivable as long as the poll endpoint answers.
 - **N5 — Privacy.** Host addresses, emails and phone numbers are collected for shipping and
   for §97.213(d). They must be access-controlled, never exported, and never published.
 - **N6 — Modest operational burden.** This will be maintained by a small academic team with
@@ -856,18 +1013,17 @@ Offered to make the discussion concrete, not because it is decided.
    wd10 ClickHouse ───▶│  monitoring · control        │────▶ public map, hamsci.org
    (wspr.rx)           │                              │────▶ data products (polar-psws)
                        │                              │
-   meshcentral ───────▶│                              │
-   (agent state)       └───────────────┬──────────────┘
-                                       │  short-lived transmit authorisation
+                       └───────────────┬──────────────┘
+                                       │  poll: "is a control operator reachable?"
                                        ▼
                        ┌──────────────────────────────┐
                        │  WSPRSonde host (Raspberry Pi)│
                        │  ┌────────────────────────┐  │
                        │  │ keep-alive daemon      │  │  feeds the sonde's dead-man
-                       │  │  · fetches token       │  │  only while holding a valid
-                       │  │  · feeds WS dead-man   │  │  unexpired token; the WS
-                       │  └───────────┬────────────┘  │  drops the transmitters when
-                       │      serial  ▼               │  the keep-alive stops
+                       │  │  · polls the server    │  │  only while the server answers
+                       │  │  · feeds WS dead-man   │  │  yes; the WS drops the
+                       │  └───────────┬────────────┘  │  transmitters when the
+                       │      serial  ▼               │  keep-alive stops
                        │  ┌────────────────────────┐  │  (R4.3, R4.4)
                        │  │ WSPRSonde: dead-man    │  │
                        │  └────────────────────────┘  │
@@ -876,10 +1032,11 @@ Offered to make the discussion concrete, not because it is decided.
 
 Two properties are load-bearing:
 
-1. **The arrow into the Pi is a pull, not a push.** The host asks for permission; the server
-   never has to reach in. That works behind NAT, needs no inbound firewall rule, and means a
-   server outage stops transmission rather than stranding it. The transmitters are stopped by
-   the sonde's own dead-man, so the daemon's failure mode is the same as its silence.
+1. **The arrow into the Pi is a pull, not a push.** The host asks whether a control operator
+   is reachable; the server never has to reach in. That works behind NAT, needs no inbound
+   firewall rule, no mobile app in the foreground, and means a server outage stops transmission
+   rather than stranding it. The transmitters are stopped by the sonde's own dead-man, so the
+   daemon's failure mode is the same as its silence.
 2. **The registry is upstream of the application.** Changes arrive as commits — reviewable,
    attributable, revertible — and the web UI is a convenient way to author them.
 
@@ -894,9 +1051,9 @@ leaving something half-built.
 |---|---|---|
 | **0 — done** | Reconciled station list, live location product, verified detection method (this repo) | complete 2026-08-13 |
 | **1 — Registry** | Canonical versioned registry, import from all four current sources, public export, map | first |
-| **2 — Monitoring** | Scheduled polling, status classification, offset verification, alerting, MeshCentral cross-check | next |
+| **2 — Monitoring** | Scheduled polling, status classification, offset verification, alerting, host-reachability cross-check | next |
 | **3 — Coordination** | Assignment workflow with collision and §97.203(b) checking; public assignment table | with or after 2 |
-| **4 — Positive control** | Keep-alive daemon on the Pi feeding the WS dead-man, token service, operator phone interface, audit log | last, and needs the most review |
+| **4 — Positive control** | Keep-alive daemon on the Pi feeding the WS dead-man, the poll endpoint, operator phone interface with configuration and transmit on/off, audit log | last, and needs the most review |
 
 Phase 4 deliberately comes last. It touches transmitters people are licensed for, it is the
 part where a bug has consequences beyond a wrong number on a web page, and §5 should be
@@ -911,115 +1068,122 @@ background. Three consequences:
   web-application work with clear acceptance tests (the registry round-trips the four
   current sources; the monitor reproduces the §2.2 table; the coordinator refuses the KH2R /
   DP0GVN collision). They fit the format.
-- **Phase 4 is scoped for the students as a design, a reference implementation of the
-  keep-alive daemon, and a test harness against a bench unit**, with deployment to licensed
-  stations gated on a review by the control operators concerned and a settled answer to
-  Q1. Students should not be the ones deciding when a transmitter someone else is licensed
-  for goes on or off the air.
-- **The requirements freeze at Draft 1.0 when the capstone proposal is submitted.**
-  Anything raised after that goes into a backlog for the team to weigh, not into the
-  baseline they are graded against. This is why the review round is happening now.
+- **Phase 4 is now deliverable work rather than a design exercise**, because the committee
+  removed the hard part. Retiring the automated monitor (§11) leaves a control point: the
+  keep-alive daemon, the poll endpoint, and an operator interface for configuration and
+  transmit on/off. Deployment to licensed stations is still gated on a review by the control
+  operators concerned. Students should not be the ones deciding when a transmitter someone
+  else is licensed for goes on or off the air.
+- **The requirements become final when the student team and the WSPRSonde team agree on
+  them.** Decided by the editor on 2026-10-02:
+
+  > "nothing is final until the actual student comes to an agreement with the WSPRSonde team."
+
+  This draft is the scope-reduced baseline the team starts from, and reviewing it with the
+  technical team (§3.1) is part of the capstone. The revision they agree on is the baseline
+  they build against and are graded against. Anything raised after that agreement goes into a
+  backlog for the team to weigh. The review round is happening now so that the starting draft
+  is as sound as the reviewers can make it.
 
 ---
 
 ## 10. Open questions for reviewers
 
-1. **§5 as a whole — is the reading right?** Specifically: is unattended HF WSPR beacon
-   operation correctly characterised as remote control under §97.109(c) rather than automatic
-   control, given that §97.203(d) does not cover 3.5–28.126 MHz? What is current practice
-   among the existing operators, and has anyone had this conversation with the FCC or with
-   ARRL? *(Paul, Rob, Michael AC0G, Mark WA4KFZ — you have all run unattended beacons.)*
-   **Open.** Paul Elliott will check the regulations and expects a three-minute dead-man to
-   comply ([issue #4](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/4)). The three
-   minutes is right, and it reaches a WSPRSonde through §97.213(b), telecommand, rather than
-   through the automatic-control rules: automatic control of a beacon is confined to the
-   §97.203(d) segments, which exclude every channel in §5.3. The number is the same either
-   way, so the dead-man can be built while the characterisation is still being argued.
-2. **Is the keep-alive cadence acceptable to operators**, or is the operational risk of a
-   station going quiet because a keep-alive did not arrive worse than the problem it solves?
-   **Partly answered.** The WSPRSonde's dead-man replaces the per-slot authorisation this
-   question was originally asked about (§5.5,
-   [issue #3](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/3)), and a longer-lived
-   token with a purely local watchdog is unavailable for a US station, because §97.213(b)
-   bounds the renewal interval over the control link at three minutes. The dead-man re-arms
-   by itself when traffic resumes, so an outage costs a minute or two of transmission rather
-   than a truck roll. What remains open is whether the licence holders accept that a
-   MeshCentral outage takes their stations off the air at all, and how much redundancy the
-   keep-alive path therefore needs.
-3. **Should the interlock be mandatory for HamSCI-funded units** and optional for privately
-   owned ones, or uniform?
-4. **Who owns the registry after this is built?** Gwyn has been explicit that he wants a
-   curator with hands-on access to the hardware. Is that a named person, a rota, or the
-   system itself with the coordinator as backstop?
-5. **Callsign suffixes. Closed.** Nathaniel proposed `-WS` to mark WSPRSonde
-   transmissions. Neither the WSPRSonde nor the BeaconBlaster supports extended callsigns
-   (Paul Elliott, [issue #2](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/2)), and
-   the WSPR message format has no encoding for a two-letter suffix in any case (§2.4).
-   Identification rests on R3.6 and the registry. A related question is open in that issue:
-   whether a WS carries a serial number the host can read, so R1.1's unit identifier can be
-   the hardware's own rather than one we invent.
-6. **MeshCentral as the identity provider** — is that acceptable and does it scale to
-   non-HamSCI participants (R2.7)?
-7. **Unlisted transmitters. Partly answered.** Of the four candidates the 2026-08-13 scan
-   returned, **ZD7GWM** is confirmed as a privately owned WSPRSonde on St Helena, now in the
-   `wsprsonde` table (Gwyn Griffiths,
-   [issue #7](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/7)). **DC7TO**, **N9VP**
-   and **G0PKT** are still unidentified. **W8GPS** has since been added by Gwyn
-   ([issue #6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6)) and came on the air
-   after the scan; it is operated by John Ackermann N8UR, at a site that is not his home
-   address, and its hardware and funding are not on record here. Its 60 Hz channel has no
-   coordinator assignment behind it, so the open questions are who issued that channel and
-   whether it needs one. Does anyone recognise the remaining three? *(Paul, you would know who
-   has hardware.)*
-8. **Two channel conflicts.** KH2R and DP0GVN are assigned 1 Hz apart, and 2 Hz apart as
-   measured; which moves, and when? DP0GVN is in Antarctica and reconfiguration there is not
-   free. Separately, **ZD7GWM and N4RVE are both on 100 Hz** on six common bands (§2.3), which
-   needs a decision rather than a discussion: ZD7GWM is privately owned and outside the HamSCI
-   programme, so this is the first live test of R2.7. Measured to 0.1 Hz they are within 0.4 Hz
-   on five of those bands and 0.7 Hz on the sixth, so there is no reading of the numbers under
-   which this resolves itself.
-9. **Non-US jurisdictions** — does anyone know the equivalent Canadian (ISED), German (BNetzA),
-   Costa Rican and Indian requirements for unattended beacon operation? *(Michael Hartje
-   DK5HH, Pierre Fogal VE3KTB, John Clark TI4JWC.)*
-10. **Scope check** — is the transmit side the right boundary, or should this system cover
-    PSWS receivers too? Rob's original question was about a "HamSCI monitoring and
-    configuration website", which is broader than what is proposed here.
-11. **Capstone fit (§9.1).** Is the split of Phases 1–3 for the students and Phase 4 as
-    design-plus-bench-prototype the right one? Is anything in R1–R3 unreasonable to ask of
-    a student team in one academic year?
-12. **Who will act as a customer for the student team?** A capstone works when the
-    students can put a question to a real user and get an answer within a week. Which
-    reviewers are willing to be named as stakeholders the team may contact, and for which
-    roles in §3?
-13. **Two gaps in the spot archive's mode record**, both raised in
-    [issue #6](https://github.com/HamSCI/wsprsonde.hamsci.org/issues/6) and both beyond what
-    Gwyn Griffiths can answer first-hand. First, **`wsprdaemon.spots` changed its encoding of
-    WSPR-2 more than once**: reading month by month from July 2024, WW0WWV, ZD7GWM and DP0GVN
-    all read `code = 1` to April 2025, `2` from May to October 2025, `1` again to February 2026,
-    and `2` from March 2026. Do those dates track WsprDaemon client releases or the TimescaleDB
-    to ClickHouse migration? *(Rob AI6VN, Dave W0DAS.)* Until that is known, Draft 0.9 treats
-    `wspr.rx` as the source for measured mode and `wsprdaemon.spots` as trustworthy for mode only
-    from March 2026. Second, **DP0GVN shows both mode codes at once in `wspr.rx`**, `1`
-    throughout with large numbers of `3` from January to September 2025 and from December 2025 to
-    February 2026 (March 2025: 110,072 WSPR spots against 107,524 FST4W). Is there a second
-    transmitter signing DP0GVN at Neumayer, or was the WS-8 configured band by band? *(Hyomin
-    Kim, Michael Hartje DK5HH.)*
+The review committee met on 2026-09-16 and settled most of what this section used to carry. Ten
+of the thirteen questions in Draft 0.9 are closed, removed as out of scope, or folded into a
+requirement; the change log says which went where. **Three remain, and each needs one named
+person rather than a discussion.**
+
+1. **Is §5's reading right?** The committee adopted the remote-control determination of §5.3 on
+   2026-09-16: a WSPRSonde is under remote control under §97.109(c), because this system puts a
+   control point in the operator's pocket. §97.109 and §97.213 were re-verified against the
+   current eCFR the same day and the quoted text matches. What is still wanted is the judgement
+   of someone who has argued these rules in practice: **has anyone had this conversation with
+   the FCC or with ARRL**, and does the reading survive contact with someone who has?
+   *(Paul WB6CXC, Rob AI6VN, Michael AC0G, Mark WA4KFZ — you have all run unattended beacons.)*
+   This is the section to read adversarially.
+
+2. **How much redundancy does the control path need, beyond the operator pool?** R4.6 gives
+   redundancy of *people*: the station stays up while any designated control operator is
+   reachable. It gives none against `wsprsonde.hamsci.org` itself, and the committee decided
+   against building any into version 1 (N4). The open question is whether the licence holders
+   accept that a server outage takes their keep-alive-enabled stations off the air for its
+   duration. *(The control operators, for their own stations.)*
+
+3. **What encoding does the WSPRSonde firmware use for transmit mode?** R1.3a requires the
+   system to write the encoding each destination expects, and the firmware column of its table
+   is blank. This became load-bearing when R4.12 put configuration in scope: the system cannot
+   set a unit's mode without it. Three encodings are already known to be in play and two of them
+   disagree, so guessing is not available. *(Paul Elliott WB6CXC.)*
 
 ---
 
 ## 11. Explicitly out of scope
 
-- PSWS receive instruments (HFRx, magnetometer, VLF) — see Q10.
-- Science data processing and archival. This system publishes metadata about transmitters;
-  it does not touch spot or noise data beyond reading it for monitoring.
-- Replacing WsprDaemon, WSPRNet or MeshCentral.
-- WSPRSonde firmware, including the dead-man itself. The keep-alive daemon on the host
-  computer is in scope (R4.3).
+Draft 0.95 extended this list considerably. Everything below was in an earlier draft or was
+proposed and declined; the change log says when and why. **These are retired, not deferred: they
+are not backlog items for the capstone team to pick up if time allows.**
+
+**Removed by the review committee on 2026-09-16:**
+
+- **Automated monitoring for the purpose of control shutdown.** A system that watches the spot
+  record, decides a station is misbehaving and shuts it down. The committee judged it too
+  complex for an undergraduate team to design and implement correctly in six months, and the
+  hard part is not the plumbing but defining "misbehaving" well enough to act on automatically.
+  Monitoring that *reports and alerts* stays (R3); monitoring that *acts on the transmitter*
+  is gone. R4's control point is a human one.
+- **How many WSPRSondes the world can support, and how assignments should be optimised.** These
+  depend on how WSPR propagates and decodes, and the answers shape what science the received
+  data can support, so they need careful consideration rather than a prototype's best guess.
+  R2.2 specifies a simple stated rule instead, and invites a better one as student work.
+  Technical Note 1 in this repository records the capacity analysis and is advisory; its
+  proposed changes to R2.2, R2.3 and R2.4 are not adopted.
+- **Explaining the spot archive's historical mode record.** Why `wsprdaemon.spots` changed its
+  encoding of WSPR-2 at least three times between July 2024 and March 2026, and whether a second
+  transmitter signs DP0GVN at Neumayer. Recording configuration correctly going forward is in
+  scope (R1.3a, R1.4); reconstructing the past from somebody else's archive is not.
+- **Identifying the unlisted transmitters.** DC7TO, N9VP and G0PKT remain unidentified, and
+  W8GPS's 60 Hz channel has no coordinator assignment behind it. §2.4 keeps them as the evidence
+  for running R3.6 on a schedule. Resolving them is not this project's work.
+- **Resolving the two live channel conflicts.** KH2R and DP0GVN 1 Hz apart, and ZD7GWM and N4RVE
+  co-channel on 100 Hz. §2.3 keeps both as evidence, because they are the case for building the
+  system at all. They are operational decisions for the coordinator when the system is deployed,
+  and R2.2's rule will flag the second one by itself.
+- **Non-US regulatory requirements.** ISED, BNetzA, Costa Rican and Indian rules for unattended
+  beacon operation. §5 is US-only and says so; R4.9 requires the system to decline to assert
+  compliance it has not checked.
+- **Third-party infrastructure as a dependency.** The system depends on our own server and
+  software. Remote administration of host computers, however the PSWS team chooses to do it, is
+  an operational matter this system does not address and does not require.
+
+**Out of scope since earlier drafts:**
+
+- PSWS receive instruments (HFRx, magnetometer, VLF). Confirmed 2026-09-16: the transmit side is
+  the right boundary, and no extensibility work is to be done against a receiver use case nobody
+  has specified.
+- Science data processing and archival. This system publishes metadata about transmitters; it
+  does not touch spot or noise data beyond reading it for monitoring.
+- Replacing WsprDaemon or WSPRNet.
+- WSPRSonde firmware, including the dead-man itself. The keep-alive daemon on the host computer
+  is in scope (R4.3).
 - Procurement, shipping and inventory finance, beyond the pipeline states in R1.7.
 
 ---
 
 ## Provenance
+
+Added 2026-09-16, for Draft 0.95:
+
+- **Review committee telecon, 2026-09-16** (Frissell, chairing). Eleven scope decisions,
+  recorded verbatim with their analysis and supersessions in
+  `notes/2026-09-16_telecon_scope_decision.md`. That file is authoritative for *why* a decision
+  was made and what it retired; this document is authoritative for what the requirements now say.
+- 47 CFR §97.109 and §97.213, re-verified against the **current eCFR on 2026-09-16** when the
+  committee adopted the remote-control determination of §5.3:
+  <https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-97/subpart-B/section-97.109>
+  and
+  <https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-97/subpart-C/section-97.213>.
+  Quoted passages match.
 
 Sources consulted 2026-08-13:
 
@@ -1085,6 +1249,82 @@ attributions require human verification before this document is acted upon.
 ---
 
 ## Change log
+
+**Draft 0.96, 2026-10-02.** One decision by the editor, recorded in
+`notes/2026-10-02_student_overview_and_requirements_finality.md`. Changes from Draft 0.95:
+
+- **The Draft 1.0 freeze is retired.** Draft 0.95's §9.1 froze the requirements at Draft 1.0
+  when the capstone proposal was submitted, and sent anything later to a backlog. The
+  requirements now become final when the student team and the WSPRSonde team agree on them, and
+  that review is part of the capstone. §1's "Who will build it" and §9.1 are rewritten to match.
+  No requirement changed.
+
+**Draft 0.95, 2026-09-16.** A scope reduction decided by the review committee on a telecon, and
+the largest revision this document has had. Eleven decisions, recorded verbatim in
+`notes/2026-09-16_telecon_scope_decision.md`. Changes from Draft 0.9:
+
+**Scope removed.** Each of these is **retired, not deferred**, and §11 now says so:
+
+- **Automated monitoring for control shutdown is gone.** "Too complex for the initial version of
+  this project." Monitoring that reports and alerts stays (R3); monitoring that acts on the
+  transmitter is retired. This is what made Phase 4 deliverable rather than a design exercise.
+- **Frequency-assignment optimisation and the channel-capacity question are gone**, because they
+  depend on how WSPR propagates and decodes and will shape what science the data supports. **R2.2
+  is rewritten as a simple stated rule**: prefer an unassigned channel; otherwise the least-used
+  one; break ties by great-circle separation. It records explicitly that geographic separation is
+  a *proxy* for non-interference and not the same thing on HF, and invites a better algorithm as
+  student work. Technical Note 1 becomes advisory.
+- **Historical mode archaeology is gone**, and **R1.4 is rewritten**: mode history comes from the
+  unit record, seeded from Gwyn Griffiths' table, rather than being re-derived from spots.
+- **Q10.7 and Q10.8 leave §10** as deployment-time and identification matters. §2.3 and §2.4 keep
+  both as evidence, since they are the case for building the system.
+- **Non-US regulatory research is gone.** §5 is US-only and says so.
+
+**Scope changed.**
+
+- **R4 is rescoped to a control point**, in the committee's words: the majority of WSPRSonde
+  configurations and transmitter on/off available to the control operator through the web app.
+  **New R4.12** carries the configuration half.
+- **§5.3 records the committee's remote-control determination**, adopted on the strength of that
+  interface: the operator has the facility to control the transmitter from a phone or computer
+  and is therefore at a control point. §97.109 and §97.213 were **re-verified against the current
+  eCFR on 2026-09-16** and the quoted text matches.
+- **R4.3: the keep-alive becomes a per-unit toggle**, because Part 97 reaches US stations and
+  five units are licensed elsewhere. The requirement records that §97.213(b) is unchanged by the
+  toggle and that the system does not enforce or warn on it, which was proposed and declined.
+- **R4.6 becomes a pool of simultaneous control operators**, replacing the on-duty rota. Any one
+  member's authenticated session keeps the station up, automatically, with no human action in
+  normal operation.
+- **§5.5 and §8 carry the settled architecture**: the server tracks logged-in control devices and
+  the host Pi polls it, feeding the dead-man only while the answer is yes. The Pi pulls and the
+  server never reaches in, so a host that loses its network path goes quiet by itself.
+- **N4 is restated rather than carried forward.** Draft 0.9 said the interlock must not depend on
+  the web application being up; the settled architecture makes server availability into transmit
+  availability for enabled units. The trade fails safe and was made knowingly, and server uptime
+  becomes an operational requirement with two consequences stated as requirements.
+- **R2.4 survives as a view rather than a gate**, implemented as Gwyn's `wd2` dashboard with the
+  frequency populated from the registry.
+- **R1.3a is new**: store mode by name and translate at every boundary, on writes as well as
+  reads, now that the system configures units. Its table carries three encodings, two of which
+  disagree on WSPR and agree on FST4W.
+- **R3.5 is rebuilt on our own poll data**, which is a better signal than an external agent's
+  state because it is the same path the control link runs over.
+- **R5.3: the system owns its own identity.** Draft 0.9 listed external identity providers to
+  weigh; a trade study was set up on this call and then retired within the hour when the
+  committee removed third-party infrastructure from scope entirely.
+- **§3.1 is new**: the technical team the student developers work with, routed by subject, with
+  one email address for design questions. This replaces the earlier intent that the PI alone act
+  as customer.
+- **§4.1 was removed and §4.2 to §4.6 renumbered to §4.1 to §4.5.** Cross-references in the body
+  were updated; **change-log entries below keep the numbers they were written with**, because
+  they describe the document as it stood at the time and editing them would falsify its history.
+- **Q10.5 closed**: a WS-8 carries a host-readable serial number, so R1.1 keys on the hardware's
+  own identifier.
+- **§10 falls from thirteen questions to three**, each needing one named person: whether §5's
+  reading survives someone who has argued these rules, whether the licence holders accept a
+  server outage taking their stations off the air, and what encoding the WSPRSonde firmware uses
+  for transmit mode.
+
 
 **Draft 0.9, 2026-09-14.** One correction from Gwyn Griffiths about which table a frequency
 measurement should come from, and what it changes. Changes from Draft 0.8:

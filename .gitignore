@@ -39,11 +39,38 @@ env/
 *.snm
 *.vrb
 
+# Jupyter
+.ipynb_checkpoints/
+
+# Data: keep bulk and raw data out of git.
+# Fetch it from its archive, or regenerate it with a committed builder.
+data/raw/
+data/cache/
+*.h5
+*.hdf5
+*.nc
+*.npz
+*.sqlite
+*.wav
+*.iq
+*.sc16
+
+# Generated figures in a working repo: the code is the artifact.
+# A release repo that archives figures alongside their code should
+# remove these two lines and commit the rendered output.
+figs/
+figures/
+
+# Credentials
+.env
+*.key
+*.pem
+
 # Claude Code local state
 .claude/settings.local.json
 CLAUDE.local.md
 
-# Source material containing personal data — never commit.
+# Source material containing personal data; never commit.
 # reference/ holds an Outlook mailbox export (the PI's full inbox) and WSPRSonde
 # host shipping lists with home addresses, phone numbers and email addresses.
 # Facts extracted from these belong in data/ and docs/ with the personal data
